@@ -6,7 +6,7 @@
    API = 'https://script.google.com/macros/s/.../exec'  -> reads/writes the Google Sheet
    (see Code.gs).
    ===================================================================== */
-const API = 'https://script.google.com/macros/s/AKfycbwCVYsPL8zSiphJoovWKgLPYJ-lok_pSqgnKFFj7vEnDS3ETprGROm0TSgNJ1VT2f9_/exec';                       // <-- paste your Apps Script web app URL here
+const API = 'https://script.google.com/macros/s/AKfycbwA25xqTe7YNT-VUdEnXFOH71pX8S0Ep-fJIz5cnqoPTb5PuHTEHcTCTm9MTjnbEvi8/exec';                       // <-- paste your Apps Script web app URL here
 const TZ = 'Asia/Colombo';            // Sri Lanka time
 const REFRESH_MS = 60000;             // how often the dashboard re-reads the sheet
 
