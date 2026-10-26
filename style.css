@@ -1,10 +1,9 @@
-/* Bip Hope (by Khurasan) - put the font file in a "fonts" folder next to this file: fonts/BipHope.ttf (and/or .otf / .woff2) */
+/* Drop Line - put the font file in a "fonts" folder next to this file and name it DropLine.otf
+   (if your file has another name, change it in the url() below) */
 @font-face{
-  font-family:'Bip Hope';
-  src:local('Bip Hope'),local('BipHope'),
-      url('fonts/BipHope.woff2') format('woff2'),
-      url('fonts/BipHope.ttf') format('truetype'),
-      url('fonts/BipHope.otf') format('opentype');
+  font-family:'Drop Line';
+  src:local('Drop Line'),local('DropLine'),
+      url('fonts/DropLine.otf') format('opentype');
   font-weight:100 900;font-style:normal;font-display:swap;
 }
 :root{
@@ -13,7 +12,7 @@
   --accent:#C9563F;         /* selected-day marker */
   --softpink3:#FEE6DE;      /* light tint for small cards inside the pink panels */
   --pinkgrad:linear-gradient(135deg,var(--softpink),var(--softpink2));--mu:#9a9db0;--ln:#ececf1;
-  --font:'Bip Hope','Trebuchet MS','Segoe UI',system-ui,-apple-system,sans-serif;
+  --font:'Drop Line','Trebuchet MS','Segoe UI',system-ui,-apple-system,sans-serif;
   --mono:var(--font);
   --sans:var(--font);
   --green:#3a7551;--green2:#7cc47f;--leaf:#a9d6a4;--leaf2:#eaf3e8;
@@ -42,8 +41,13 @@ h1,h2,h3{margin:0}
 .page.show .reveal{animation:cardIn .75s cubic-bezier(.22,1,.36,1) both;animation-delay:calc(var(--i,0)*90ms)}
 @keyframes pop{0%{scale:1}45%{scale:1.14}100%{scale:1}}
 .pop{animation:pop .4s cubic-bezier(.34,1.56,.64,1)}
-.lift{transition:transform .25s,box-shadow .25s}
-.lift:hover{transform:translateY(-5px)}
+.lift,.tile,.cal,.band,.chartcard,.qwrap,.qc,.fx{transition:transform .25s,box-shadow .25s}
+.lift:hover,.tile:hover,.cal:hover,.band:hover,.chartcard:hover,.fx:hover{transform:translateY(-5px)}
+.qwrap:hover:not(:has(.qc:hover)){transform:translateY(-5px)}          /* only the card under the pointer lifts, not the panel around it */
+.qc:hover:not(:has(.fx:hover)){transform:translateY(-5px)}
+/* a thin invisible strip under each lifting card keeps it hovered when the pointer is at its bottom edge (no flicker) */
+.lift::before,.tile::before,.cal::before,.band::before,.chartcard::before,.qwrap::before,.qc::before,.fx::before{content:"";position:absolute;left:0;right:0;top:100%;height:8px}
+.cal,.band,.chartcard,.qwrap,.qc{position:relative}
 
 /* ---------- flip clock ---------- */
 .clock{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:26px}
@@ -59,8 +63,8 @@ h1,h2,h3{margin:0}
 .tile .lab.l{left:14px}.tile .lab.r{right:12px}
 
 /* ---------- calendar ---------- */
-.cal{border-radius:var(--r);overflow:hidden;background:linear-gradient(180deg,var(--softpink),var(--softpink2));margin-bottom:34px}
-.cal-head{display:flex;align-items:center;justify-content:space-between;height:44px;padding:0 10px;background:var(--softpink);color:var(--ink);border-bottom:1px solid rgba(91,42,38,.12)}
+.cal{border-radius:var(--r);background:linear-gradient(180deg,var(--softpink),var(--softpink2));margin-bottom:34px}
+.cal-head{display:flex;align-items:center;justify-content:space-between;height:44px;padding:0 10px;background:var(--softpink);color:var(--ink);border-bottom:1px solid rgba(91,42,38,.12);border-radius:var(--r) var(--r) 0 0}
 .ctitle{flex:1;border:0;background:none;color:var(--ink);font:700 17px var(--font);padding:8px}
 .cn{width:28px;height:28px;border:0;border-radius:50%;background:transparent;color:var(--ink);font:700 22px/1 var(--font);display:grid;place-items:center;transition:background .2s}
 .cn:hover{background:rgba(255,255,255,.28)}
@@ -152,10 +156,11 @@ label.qh{cursor:pointer}
 .qc input[type=checkbox]:checked{background:var(--ink);scale:1.08}
 .qc input[type=checkbox]:checked::after{content:"";width:6px;height:12px;margin-top:-2px;border:solid #fff;border-width:0 3px 3px 0;transform:rotate(45deg)}
 .qc input[type=checkbox]:focus-visible,.qc input[type=text]:focus-visible,.qc input[type=number]:focus-visible,.qbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.qc input[type=text],.qc input[type=number]{width:100%;min-width:0;margin-top:10px;padding:10px 12px;border:1px solid rgba(91,42,38,.22);border-radius:10px;background:#fffaf8;color:var(--ink);font:400 15px var(--font)}
+.qc input[type=text],.qc input[type=number]{display:block;width:100%;min-width:0;margin:0;padding:10px 12px;border:1px solid rgba(91,42,38,.22);border-radius:10px;background:#fffaf8;color:var(--ink);font:400 15px var(--font)}
 .qc input::placeholder{color:#94675d}
 .qrow{display:flex;gap:8px;margin-top:10px}
-.qrow input{margin-top:0!important;flex:1}
+.fx{display:block;position:relative;margin-top:10px}
+.qrow .fx{flex:1;margin-top:0;min-width:0}
 .qbtn{flex:none;border:0;border-radius:10px;padding:0 18px;background:var(--ink);color:#fff;font:700 15px var(--font);transition:background .2s,transform .2s}
 .qbtn:hover{background:#3d1a17;transform:translateY(-2px)}
 
@@ -175,6 +180,8 @@ label.qh{cursor:pointer}
   .tile{height:130px;font-size:58px;line-height:130px}.tile .half span{height:130px;line-height:130px}
 }
 @media(prefers-reduced-motion:reduce){
+  .lift,.tile,.cal,.band,.chartcard,.qwrap,.qc,.fx{transition:none}
+  .lift:hover,.tile:hover,.cal:hover,.band:hover,.chartcard:hover,.fx:hover,.qwrap:hover,.qc:hover{transform:none!important}
   .page.show .reveal,.d.sel,.d.pv,.plot .line.draw,.pop{animation:none}
   .plot .line.draw{stroke-dashoffset:0}
   .cal-body,.fill,.tip{transition:none}
