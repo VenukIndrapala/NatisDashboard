@@ -4,28 +4,24 @@
    ---------------------------------------------------------------------
    API = ''  -> DEMO MODE: sample data, entries saved in this browser only.
    API = 'https://script.google.com/macros/s/.../exec'  -> reads/writes the Google Sheet
-   (see README.md and Code.gs).
+   (see Code.gs).
    ===================================================================== */
-const API = 'https://script.google.com/macros/s/AKfycbwCVYsPL8zSiphJoovWKgLPYJ-lok_pSqgnKFFj7vEnDS3ETprGROm0TSgNJ1VT2f9_/exec';                       // <-- paste your Apps Script web app URL here
+const API = 'https://script.google.com/macros/s/AKfycbwA25xqTe7YNT-VUdEnXFOH71pX8S0Ep-fJIz5cnqoPTb5PuHTEHcTCTm9MTjnbEvi8/exec';                       // <-- paste your Apps Script web app URL here
 const TZ = 'Asia/Colombo';            // Sri Lanka time
 const REFRESH_MS = 60000;             // how often the dashboard re-reads the sheet
 
-/* Edit the order / names here. Goals themselves come from the "Goals" tab (or the defaults below). */
+/* The two cards (and chart views). Water goal comes from the "Goals" tab; food goal is always 3 meals. */
 const METRICS = [
-  { id: 'water',    name: 'WATER',       sub: 'Hydration',        unit: 'ml',    color: 'blue',  icon: '<path d="M12 3S5 11 5 15a7 7 0 0 0 14 0c0-4-7-12-7-12Z"/>' },
-  { id: 'calories', name: 'CALORIES',    sub: 'Energy',           unit: 'kcal',  color: 'pink',  icon: '<path d="M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-6 1-9Z"/>' },
-  { id: 'protein',  name: 'PROTEIN',     sub: 'Muscle',  unit: 'g',     color: 'peach', icon: '<path d="M13 2 5 14h6l-1 8 8-12h-6l1-8Z"/>' },
-  { id: 'veg',      name: 'FRUIT & VEG', sub: 'Servings',         unit: 'serv.', color: 'mint',  icon: '<path d="M5 19C5 10 10 5 20 4c0 10-4 16-12 16"/><path d="M5 19c3-5 6-8 10-10"/>' }
+  { id: 'water', name: 'WATER', sub: 'Daily Intake',    unit: 'ml',    cap: 'ml',             color: 'blue',  icon: '<path d="M12 3S5 11 5 15a7 7 0 0 0 14 0c0-4-7-12-7-12Z"/>' },
+  { id: 'food',  name: 'FOOD',  sub: 'Meals Complete',  unit: 'meals', cap: 'meals complete', color: 'peach', icon: '<path d="M7 3v7M4 3v4a3 3 0 0 0 6 0V3M7 10v11M17 3c-2.2 1.6-3 4.2-3 7h3v11"/>' }
 ];
-const DEFAULT_GOALS = { water: 2500, calories: 2000, protein: 60, veg: 5 };
-const DEFAULT_QUICK = [
-  { label: 'Glass Of Water', water: 250 }, { label: 'Water Bottle', water: 500 },
-  { label: 'Light Snack', calories: 150, protein: 5 }, { label: 'Full Meal', calories: 600, protein: 30, veg: 2 },
-  { label: 'Fruit Or Veg Serving', calories: 60, protein: 1, veg: 1 }
-];
+const MEAL_DEFS = [{ id: 'breakfast', name: 'Breakfast' }, { id: 'lunch', name: 'Lunch' }, { id: 'dinner', name: 'Dinner' }];
+const DEFAULT_GOALS = { water: 2500, food: 3 };
 const DEFAULT_TASKS = [
-  { t: 'Water before meals', d: false }, { t: '5 fruit & veg servings', d: false }, { t: 'Log dinner', d: false }
+  { t: 'Water before meals', d: false }, { t: 'Log breakfast, lunch and dinner', d: false }, { t: 'Log dinner', d: false }
 ];
+const WATER_ICON = '<path d="M12 3S5 11 5 15a7 7 0 0 0 14 0c0-4-7-12-7-12Z"/>';
+const SNACK_ICON = '<path d="M5 19C5 10 10 5 20 4c0 10-4 16-12 16"/><path d="M5 19c3-5 6-8 10-10"/>';
 
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
@@ -53,14 +49,16 @@ const fullDate = k => { const d = toDate(k); return DOW[d.getUTCDay()] + ', ' + 
 
 /* ---------------- state ---------------- */
 let today = todayKey();
-let GOALS = { ...DEFAULT_GOALS }, QUICK = DEFAULT_QUICK.slice(), TASKS = DEFAULT_TASKS.map(t => ({ ...t }));
-const DATA = { days: {} };                       // days['2026-10-26'] = { water, calories, protein, veg }
-let metric = 'water', tab = '1W', demo = !API, taskDirty = false;
+let GOALS = { ...DEFAULT_GOALS }, TASKS = DEFAULT_TASKS.map(t => ({ ...t }));
+const DATA = { days: {}, meals: {} };            // days['2026-10-26'] = { water }   meals['2026-10-26'] = { breakfast:{d,t}, lunch:{d,t}, dinner:{d,t}, snack:'' }
+let metric = 'water', tab = '1W', demo = !API, taskDirty = false, inflight = 0;
 let SEL = { a: today, b: null, ranging: false, pv: null };      // calendar selection
 let view = { y: nowCol().y, m: nowCol().m - 1 };                // month shown in the calendar
-const LS_LOG = 'wf_demo_log', LS_TASKS = 'wf_tasks';
+const LS_LOG = 'wf_demo_log', LS_TASKS = 'wf_tasks', LS_MEALS = 'wf_demo_meals';
 const lsGet = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const blankMeal = () => ({ breakfast: { d: false, t: '' }, lunch: { d: false, t: '' }, dinner: { d: false, t: '' }, snack: '' });
+const getMeal = k => DATA.meals[k] || blankMeal();
 
 const toast = t => { const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 2400); };
 const post = async body => (await fetch(API, { method: 'POST', body: JSON.stringify(body) })).json();
@@ -74,12 +72,21 @@ function demoDays() {
     const k = addDays(today, -i), r = rng(hash(k));
     if (i > 0 && r() < 0.07) continue;
     const f = i === 0 ? Math.max(frac, .15) : 1;
-    days[k] = { water: Math.round((1500 + r() * 1700) * f / 50) * 50, calories: Math.round((1500 + r() * 1100) * f / 10) * 10, protein: Math.round((35 + r() * 50) * f), veg: Math.round((2 + r() * 5) * f) };
+    days[k] = { water: Math.round((1500 + r() * 1700) * f / 50) * 50 };
   }
-  lsGet(LS_LOG, []).forEach(e => { const d = days[e.date] || (days[e.date] = { water: 0, calories: 0, protein: 0, veg: 0 }); METRICS.forEach(m => d[m.id] = r1(d[m.id] + (e[m.id] || 0))); });
+  lsGet(LS_LOG, []).forEach(e => { const d = days[e.date] || (days[e.date] = { water: 0 }); d.water = r1(d.water + (e.water || 0)); });
   return days;
 }
-function useDemo() { demo = true; DATA.days = demoDays(); GOALS = { ...DEFAULT_GOALS }; QUICK = DEFAULT_QUICK.slice(); if (!taskDirty) TASKS = lsGet(LS_TASKS, DEFAULT_TASKS.map(t => ({ ...t }))); }
+function demoMeals() {
+  const meals = {};
+  for (let i = 1; i < 400; i++) {
+    const k = addDays(today, -i), r = rng(hash('m' + k));
+    if (r() < 0.08) continue;
+    const e = blankMeal(); MEAL_DEFS.forEach(m => e[m.id].d = r() < 0.75); meals[k] = e;
+  }
+  return Object.assign(meals, lsGet(LS_MEALS, {}));
+}
+function useDemo() { demo = true; DATA.days = demoDays(); DATA.meals = demoMeals(); GOALS = { ...DEFAULT_GOALS }; if (!taskDirty) TASKS = lsGet(LS_TASKS, DEFAULT_TASKS.map(t => ({ ...t }))); }
 
 /* ---------------- loading ---------------- */
 async function load(first) {
@@ -87,9 +94,9 @@ async function load(first) {
   try {
     const d = await (await fetch(API + '?t=' + Date.now())).json();
     if (d.error) throw new Error(d.error);
-    demo = false; DATA.days = d.days || {};
-    GOALS = { ...DEFAULT_GOALS, ...(d.goals || {}) };
-    QUICK = d.quick && d.quick.length ? d.quick : DEFAULT_QUICK.slice();
+    if (inflight) return;                        // a save is still travelling - don't overwrite it with older sheet data
+    demo = false; DATA.days = d.days || {}; DATA.meals = d.meals || {};
+    GOALS = { ...DEFAULT_GOALS, ...(d.goals || {}), food: DEFAULT_GOALS.food };
     if (!taskDirty) TASKS = d.tasks || [];
     renderAll(first);
   } catch (e) {
@@ -97,7 +104,7 @@ async function load(first) {
     if (first) { toast('Offline - showing sample data'); useDemo(); renderAll(true); }
   }
 }
-function renderAll(anim) { renderCards(); updateLabel(); paintSel(); draw(anim); renderQuick(); if (!document.activeElement || !document.activeElement.classList.contains('tt')) renderTodo(); }
+function renderAll(anim) { renderCards(); updateLabel(); paintSel(); draw(anim); if (!document.activeElement || !document.activeElement.classList.contains('tt')) renderTodo(); }
 
 /* =====================================================================
    FLIP CLOCK
@@ -206,9 +213,11 @@ $('#cnext').onclick = () => goMonth(1);
 $('#ctitle').onclick = () => { const n = nowCol(), dir = (n.y * 12 + n.m - 1) > (view.y * 12 + view.m) ? 1 : -1; if (n.y !== view.y || n.m - 1 !== view.m) { view = { y: n.y, m: n.m - 1 }; renderCal(dir); } SEL = { a: today, b: null, ranging: false, pv: null }; paintSel(); renderCards(); updateLabel(); };
 
 /* =====================================================================
-   METRIC CARDS
+   WATER + FOOD CARDS
    ===================================================================== */
-const dayVal = (k, id) => { const d = DATA.days[k]; return d ? (+d[id] || 0) : 0; };
+const mealsDone = k => { const e = DATA.meals[k]; return e ? MEAL_DEFS.reduce((s, m) => s + (e[m.id] && e[m.id].d ? 1 : 0), 0) : 0; };
+const hasData = (k, id) => id === 'food' ? !!DATA.meals[k] : !!DATA.days[k];
+const dayVal = (k, id) => id === 'food' ? mealsDone(k) : (DATA.days[k] ? (+DATA.days[k].water || 0) : 0);
 function buildCards() {
   $('#cards').innerHTML = METRICS.map((m, i) => `<button type="button" class="coin ${m.color} reveal lift${m.id === metric ? ' on' : ''}" data-m="${m.id}" data-pop style="--dy:-90px;--i:${i + 1}">
     <div class="ctop"><div class="ci"><svg viewBox="0 0 24 24">${m.icon}</svg></div><em class="cp">0%</em></div>
@@ -220,13 +229,16 @@ function renderCards() {
   METRICS.forEach(m => {
     const el = $(`.coin[data-m="${m.id}"]`); if (!el) return;
     const avg = keys.reduce((s, k) => s + dayVal(k, m.id), 0) / keys.length, goal = GOALS[m.id] || 1;
+    const snack = m.id === 'food' && keys.length === 1 && getMeal(keys[0]).snack ? ' · + snack' : '';
     el.querySelector('.cp').textContent = Math.round(avg / goal * 100) + '%';
-    el.querySelector('strong').textContent = fmt(avg);
-    el.querySelector('.cv span').textContent = (keys.length > 1 ? 'avg ' : '') + '/ ' + fmt(goal) + ' ' + m.unit;
+    el.querySelector('strong').textContent = fmt(r1(avg));
+    el.querySelector('.cv span').textContent = (keys.length > 1 ? 'avg ' : '') + '/ ' + fmt(goal) + ' ' + m.cap + snack;
   });
 }
 function updateLabel() {
   $('#sel-label').textContent = SEL.b ? short(SEL.a) + ' – ' + short(SEL.b) + ' · daily average' : (SEL.a === today ? 'today · ' : '') + fullDate(SEL.a);
+  $('#qdate').textContent = 'logging for ' + (logDate() === today ? 'today' : fullDate(logDate()));
+  syncQuick();
 }
 $('#cards').addEventListener('click', e => {
   const b = e.target.closest('.coin'); if (!b) return;
@@ -239,7 +251,7 @@ $('#cards').addEventListener('click', e => {
 const TABS = [['1W', 7], ['2W', 14], ['1M', 30], ['3M', 91], ['1Y', 365]];
 let S = null;
 const keysBack = (end, n) => Array.from({ length: n }, (_, i) => addDays(end, -(n - 1 - i)));
-function avgData(keys, id) { let s = 0, n = 0; keys.forEach(k => { if (DATA.days[k]) { s += dayVal(k, id); n++; } }); return n ? s / n : 0; }
+function avgData(keys, id) { let s = 0, n = 0; keys.forEach(k => { if (hasData(k, id)) { s += dayVal(k, id); n++; } }); return n ? s / n : 0; }
 function buildSeries() {
   const id = metric, n = TABS.find(t => t[0] === tab)[1], pts = [];
   if (tab === '1Y') {
@@ -257,6 +269,7 @@ function buildSeries() {
   return { pts, avg: avgData(keysBack(today, n), id), prev: avgData(keysBack(addDays(today, -n), n), id) };
 }
 const niceStep = max => { const raw = max / 4, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p; };
+const un = (m, v) => m.id === 'food' && Math.abs(r1(v)) === 1 ? 'meal' : m.unit;   // "1 meal", "2 meals"
 const signed = (v, u) => (v >= 0 ? '+' : '−') + fmt(Math.abs(r1(v))) + (u ? ' ' + u : '');
 
 function buildTabs() { $('#tabs').innerHTML = TABS.map(t => `<button type="button" role="tab" data-t="${t[0]}" data-pop class="${t[0] === tab ? 'on' : ''}">${t[0]}</button>`).join(''); }
@@ -280,8 +293,8 @@ function draw(anim) {
   // summary box
   const d = S.avg - S.prev, pct = S.prev ? Math.round(d / S.prev * 100) : 0;
   $('#cs-name').textContent = m.name; $('#cs-sub').textContent = 'Daily Average';
-  $('#cs-val').textContent = fmt(r1(S.avg)) + ' ' + m.unit;
-  const de = $('#cs-delta'); de.textContent = S.prev ? signed(d, m.unit) + ' (' + (pct >= 0 ? '+' : '') + pct + '%)' : 'no earlier data'; de.classList.toggle('down', d < 0);
+  $('#cs-val').textContent = fmt(r1(S.avg)) + ' ' + un(m, S.avg);
+  const de = $('#cs-delta'); de.textContent = S.prev ? signed(d, un(m, d)) + ' (' + (pct >= 0 ? '+' : '') + pct + '%)' : 'no earlier data'; de.classList.toggle('down', d < 0);
   hover(n - 1);
 }
 function hover(i) {
@@ -290,7 +303,7 @@ function hover(i) {
   const l = $('#hvl'); l.setAttribute('x1', x); l.setAttribute('x2', x); l.setAttribute('y1', y); l.setAttribute('y2', S.H - S.M.b);
   const c = $('#hvd'); c.setAttribute('cx', x); c.setAttribute('cy', y);
   const diff = i > 0 ? p.v - S.pts[i - 1].v : null, tip = $('#tip');
-  tip.innerHTML = `<small>${esc(p.full)}</small><b>${fmt(r1(p.v))} ${m.unit}</b>` + (diff === null ? '' : `<em class="${diff < 0 ? 'down' : ''}">${signed(diff, m.unit)}</em>`);
+  tip.innerHTML = `<small>${esc(p.full)}</small><b>${fmt(r1(p.v))} ${un(m, p.v)}</b>` + (diff === null ? '' : `<em class="${diff < 0 ? 'down' : ''}">${signed(diff, un(m, diff))}</em>`);
   tip.hidden = false;
   tip.style.left = Math.min(Math.max(x, 80), S.W - 80) + 'px'; tip.style.top = y + 'px';
   tip.style.translate = y < 120 ? '-50% 18px' : '-50% calc(-100% - 16px)';
@@ -328,71 +341,85 @@ $('#todo').addEventListener('click', e => { const b = e.target.closest('.rm'); i
 $('#todo').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.classList.contains('tt')) e.target.blur(); });
 
 /* =====================================================================
-   QUICK ADD + LOG DIALOG
+   QUICK ADD  (5 cards: water, breakfast, lunch, dinner, extra snack)
    ===================================================================== */
-const DOC = '<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg>';
-const summ = q => METRICS.filter(m => q[m.id] > 0).map(m => '+' + fmt(q[m.id]) + ' ' + m.unit).join(' · ');
-function renderQuick() {
-  $('#qlist').innerHTML = QUICK.map((q, i) => `<li>${DOC}<button type="button" class="ql" data-i="${i}" data-pop>${esc(q.label)}<small>${esc(summ(q))}</small></button></li>`).join('')
-    + `<li>${DOC}<button type="button" class="ql" data-custom data-pop>Custom Entry…<small>pick a date and amounts</small></button></li>`;
-}
+const svgI = p => `<span class="qi"><svg viewBox="0 0 24 24">${p}</svg></span>`;
 const logDate = () => (SEL.a > today ? today : SEL.a);
-$('#qlist').addEventListener('click', e => {
-  const b = e.target.closest('.ql'); if (!b) return;
-  if (b.hasAttribute('data-custom')) return openModal();
-  const q = QUICK[+b.dataset.i]; logEntry({ date: logDate(), water: q.water || 0, calories: q.calories || 0, protein: q.protein || 0, veg: q.veg || 0, note: q.label }, q.label);
-});
-async function logEntry(en, label) {
-  const k = en.date, had = !!DATA.days[k], d = DATA.days[k] || (DATA.days[k] = { water: 0, calories: 0, protein: 0, veg: 0 });
-  METRICS.forEach(m => d[m.id] = r1(d[m.id] + (en[m.id] || 0)));
-  renderCards(); paintSel(); draw(false);
+function buildQuick() {
+  $('#qlist').innerHTML =
+    `<li class="qc"><div class="qh">${svgI(WATER_ICON)}<b>Water</b></div>
+       <div class="qrow"><input type="number" id="waterIn" min="0" max="10000" step="any" inputmode="decimal" placeholder="Amount in ml" aria-label="Water in millilitres"><button type="button" class="qbtn" id="waterAdd" data-pop>Add</button></div></li>`
+    + MEAL_DEFS.map(m => `<li class="qc"><label class="qh"><input type="checkbox" class="mt" data-meal="${m.id}"><b>${m.name} done</b></label>
+       <input type="text" class="mx" data-meal="${m.id}" maxlength="120" placeholder="What did you eat?" aria-label="${m.name}: what did you eat"></li>`).join('')
+    + `<li class="qc"><div class="qh">${svgI(SNACK_ICON)}<b>Extra snack</b></div>
+       <input type="text" class="mx" data-meal="snack" maxlength="120" placeholder="Had a snack? What was it?" aria-label="Extra snack"></li>`;
+}
+function syncQuick() {                                // show the selected day's ticks / text in the cards
+  const e = getMeal(logDate());
+  $$('#qlist .mt').forEach(c => { c.checked = !!e[c.dataset.meal].d; });
+  $$('#qlist .mx').forEach(i => {
+    if (document.activeElement === i) return;       // never overwrite what is being typed
+    const v = i.dataset.meal === 'snack' ? e.snack : e[i.dataset.meal].t; if (i.value !== v) i.value = v;
+  });
+}
+async function logWater(ml) {
+  const k = logDate(), had = !!DATA.days[k], d = DATA.days[k] || (DATA.days[k] = { water: 0 });
+  d.water = r1((+d.water || 0) + ml);
+  renderCards(); paintSel(); draw(false); inflight++;
   try {
-    if (API && !demo) { const r = await post({ action: 'log', ...en }); if (r.error) throw new Error(r.error); }
-    else { const l = lsGet(LS_LOG, []); l.push(en); lsSet(LS_LOG, l); }
-    toast('Logged · ' + (label || 'Custom Entry') + ' · ' + (k === today ? 'today' : short(k)));
+    if (API && !demo) { const r = await post({ action: 'log', date: k, water: ml, note: 'Water' }); if (r.error) throw new Error(r.error); }
+    else { const l = lsGet(LS_LOG, []); l.push({ date: k, water: ml }); lsSet(LS_LOG, l); }
+    toast('Logged · +' + fmt(ml) + ' ml · ' + (k === today ? 'today' : short(k)));
   } catch (e) {
-    METRICS.forEach(m => d[m.id] = r1(d[m.id] - (en[m.id] || 0))); if (!had) delete DATA.days[k];
+    d.water = r1(d.water - ml); if (!had) delete DATA.days[k];
     renderCards(); paintSel(); draw(false); toast('Not Saved - Check Connection');
+  } finally { inflight--; }
+}
+async function saveMeal(k, meal, patch) {             // patch = { d: true|false } and / or { t: 'text' }
+  const before = DATA.meals[k] ? JSON.parse(JSON.stringify(DATA.meals[k])) : null, e = DATA.meals[k] || (DATA.meals[k] = blankMeal());
+  if (meal === 'snack') { if (patch.t !== undefined) e.snack = patch.t; }
+  else { if (patch.d !== undefined) e[meal].d = patch.d; if (patch.t !== undefined) e[meal].t = patch.t; }
+  renderCards(); draw(false); inflight++;
+  try {
+    if (API && !demo) { const r = await post({ action: 'meal', date: k, meal, ...patch }); if (r.error) throw new Error(r.error); }
+    else lsSet(LS_MEALS, { ...lsGet(LS_MEALS, {}), [k]: e });
+    toast('Saved · ' + (meal === 'snack' ? 'Extra Snack' : MEAL_DEFS.find(m => m.id === meal).name) + ' · ' + (k === today ? 'today' : short(k)));
+  } catch (err) {
+    if (before) DATA.meals[k] = before; else delete DATA.meals[k];
+    renderCards(); draw(false); syncQuick(); toast('Not Saved - Check Connection');
+  } finally { inflight--; }
+}
+$('#qlist').addEventListener('change', e => {
+  const t = e.target, meal = t.dataset.meal;
+  if (t.classList.contains('mt')) saveMeal(logDate(), meal, { d: t.checked });
+  else if (t.classList.contains('mx')) {
+    const cur = meal === 'snack' ? getMeal(logDate()).snack : getMeal(logDate())[meal].t, v = t.value.trim();
+    if (v !== cur) saveMeal(logDate(), meal, { t: v });
   }
-}
-const modal = $('#modal'), mform = $('#mform');
-function openModal() { mform.reset(); mform.date.value = logDate(); mform.date.max = today; modal.hidden = false; mform.water.focus(); }
-const closeModal = () => { modal.hidden = true; };
-$('#mcancel').onclick = closeModal;
-modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
-mform.addEventListener('submit', e => {
-  e.preventDefault();
-  const v = id => Math.max(0, Number(mform[id].value) || 0), en = { date: mform.date.value, water: v('water'), calories: v('calories'), protein: v('protein'), veg: v('veg'), note: mform.note.value.trim() };
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(en.date)) return;
-  if (!METRICS.some(m => en[m.id] > 0)) return toast('Enter At Least One Amount');
-  closeModal(); logEntry(en, en.note || 'Custom Entry');
 });
-
-/* =====================================================================
-   PAGES, ARROWS, DOTS
-   ===================================================================== */
-const pages = $$('.page'); let pg = 0;
-$('#pager').innerHTML = pages.map((_, i) => `<button type="button" role="tab" aria-label="Page ${i + 1}" data-i="${i}" class="${i ? '' : 'on'}"></button>`).join('');
-function showPage(i) {
-  i = (i + pages.length) % pages.length; if (i === pg) return;
-  pages[pg].classList.remove('show'); pg = i; void document.body.offsetWidth; pages[pg].classList.add('show');
-  $$('#pager button').forEach((b, j) => b.classList.toggle('on', j === pg));
-  if (pg === 0) draw(false);
+function addWater() {
+  const i = $('#waterIn'), v = Number(i.value);
+  if (!(v > 0)) return toast('Enter A Water Amount');
+  if (v > 10000) return toast('Max 10,000 ml At Once');
+  i.value = ''; logWater(v);
 }
-$('#prev').onclick = () => showPage(pg - 1); $('#next').onclick = () => showPage(pg + 1);
-$('#pager').addEventListener('click', e => { const b = e.target.closest('button'); if (b) showPage(+b.dataset.i); });
+$('#qlist').addEventListener('click', e => { if (e.target.closest('#waterAdd')) addWater(); });
+$('#qlist').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  if (e.target.id === 'waterIn') { e.preventDefault(); addWater(); }
+  else if (e.target.classList.contains('mx')) e.target.blur();
+});
 
 /* click "pop" feedback + keyboard */
 document.addEventListener('click', e => { const m = e.target.closest('[data-pop]'); if (!m) return; m.classList.remove('pop'); void m.offsetWidth; m.classList.add('pop'); });
 document.addEventListener('keydown', e => {
-  if (e.key !== 'Escape') return;
-  if (!modal.hidden) return closeModal();
+  if (e.key !== 'Escape' || (document.activeElement && document.activeElement.matches('input'))) return;
   SEL = { a: today, b: null, ranging: false, pv: null }; paintSel(); renderCards(); updateLabel();
 });
 
 /* =====================================================================
    START
    ===================================================================== */
-buildClock(); buildBars(); buildCards(); buildTabs(); renderCal(0); renderTodo(); renderQuick();
+buildClock(); buildBars(); buildCards(); buildTabs(); renderCal(0); renderTodo(); buildQuick(); updateLabel();
 tickClock(); setInterval(tickClock, 1000);
 load(true); if (API) setInterval(() => load(false), REFRESH_MS);
