@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Water &amp; Food Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<main id="pages">
+
+  <!-- ============ PAGE 1 ============ -->
+  <section class="page show" id="page1" aria-label="Weekly intake">
+    <div class="dash">
+
+      <!-- left column: clock, calendar, progress -->
+      <div class="col left">
+        <div class="clock reveal" id="clock" style="--dx:-110px;--i:1" aria-label="Current time in Sri Lanka">
+          <div class="tile" id="t-h"><span class="lab l" id="ampm"></span></div>
+          <div class="tile" id="t-m"><span class="lab r" id="wday"></span></div>
+        </div>
+
+        <div class="cal reveal" id="cal" style="--dx:-110px;--i:2">
+          <div class="cal-head">
+            <button type="button" class="cn" id="cprev" aria-label="Previous month" data-pop>&#8249;</button>
+            <button type="button" class="ctitle" id="ctitle" title="Back to today"></button>
+            <button type="button" class="cn" id="cnext" aria-label="Next month" data-pop>&#8250;</button>
+          </div>
+          <div class="cal-body-wrap">
+            <div class="wd"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+            <div class="cal-body" id="calBody"></div>
+          </div>
+        </div>
+
+        <div class="bars reveal" id="bars" style="--dy:90px;--i:3"></div>
+      </div>
+
+      <!-- centre column: heading, metric cards, chart -->
+      <div class="col mid">
+        <div class="band reveal" style="--dy:-70px;--i:0"><h1>weekly intake</h1><span id="sel-label"></span></div>
+        <div class="cards" id="cards"></div>
+
+        <div class="chartcard reveal" style="--dy:90px;--i:6">
+          <div class="chead">
+            <div class="csum">
+              <div class="cs-l"><b id="cs-name"></b><small id="cs-sub"></small></div>
+              <div class="cs-r"><strong id="cs-val"></strong><em id="cs-delta"></em></div>
+            </div>
+            <div class="tabs" id="tabs" role="tablist"></div>
+          </div>
+          <div class="plot" id="plot"><svg id="svg" role="img" aria-label="Intake chart"></svg><div class="tip" id="tip" hidden></div></div>
+        </div>
+      </div>
+
+      <!-- right column: to-do list, quick add -->
+      <div class="col right">
+        <div class="todo reveal" style="--dx:110px;--i:4">
+          <h2>to-do list</h2>
+          <ul id="todo"></ul>
+        </div>
+        <div class="qwrap reveal" style="--dx:110px;--i:5">
+          <h2>quick add</h2>
+          <div class="qbox"><ul id="qlist"></ul></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ PAGES 2-5 (placeholders for later) ============ -->
+  <section class="page" id="page2"><div class="soon">page 2 &middot; coming soon</div></section>
+  <section class="page" id="page3"><div class="soon">page 3 &middot; coming soon</div></section>
+  <section class="page" id="page4"><div class="soon">page 4 &middot; coming soon</div></section>
+  <section class="page" id="page5"><div class="soon">page 5 &middot; coming soon</div></section>
+</main>
+
+<button class="arrow prev" id="prev" type="button" aria-label="Previous page"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>
+<button class="arrow next" id="next" type="button" aria-label="Next page"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button>
+<div class="pager" id="pager" role="tablist" aria-label="Pages"></div>
+
+<!-- custom entry dialog -->
+<div class="modal" id="modal" hidden>
+  <form class="mcard" id="mform">
+    <h3>log intake</h3>
+    <label>Date<input type="date" name="date" required></label>
+    <div class="mrow">
+      <label>Water (ml)<input type="number" name="water" min="0" step="any" placeholder="0"></label>
+      <label>Calories (kcal)<input type="number" name="calories" min="0" step="any" placeholder="0"></label>
+    </div>
+    <div class="mrow">
+      <label>Protein (g)<input type="number" name="protein" min="0" step="any" placeholder="0"></label>
+      <label>Fruit &amp; Veg (servings)<input type="number" name="veg" min="0" step="any" placeholder="0"></label>
+    </div>
+    <label>Note<input type="text" name="note" maxlength="80" placeholder="optional"></label>
+    <div class="mbtns"><button type="button" class="btn ghost" id="mcancel">Cancel</button><button class="btn">Save</button></div>
+  </form>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<script src="app.js"></script>
+</body>
+</html>
