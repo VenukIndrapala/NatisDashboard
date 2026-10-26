@@ -6,7 +6,7 @@
    API = 'https://script.google.com/macros/s/.../exec'  -> reads/writes the Google Sheet
    (see Code.gs).
    ===================================================================== */
-const API = 'https://script.google.com/macros/s/AKfycbwA25xqTe7YNT-VUdEnXFOH71pX8S0Ep-fJIz5cnqoPTb5PuHTEHcTCTm9MTjnbEvi8/exec';                       // <-- paste your Apps Script web app URL here
+const API = 'https://script.google.com/macros/s/AKfycbwCVYsPL8zSiphJoovWKgLPYJ-lok_pSqgnKFFj7vEnDS3ETprGROm0TSgNJ1VT2f9_/exec';                       // <-- paste your Apps Script web app URL here
 const TZ = 'Asia/Colombo';            // Sri Lanka time
 const REFRESH_MS = 60000;             // how often the dashboard re-reads the sheet
 
@@ -328,11 +328,11 @@ const logDate = () => (SEL.a > today ? today : SEL.a);
 function buildQuick() {
   $('#qlist').innerHTML =
     `<li class="qc"><div class="qh">${svgI(WATER_ICON)}<b>Water</b></div>
-       <div class="qrow"><input type="number" id="waterIn" min="0" max="10000" step="any" inputmode="decimal" placeholder="Amount in ml" aria-label="Water in millilitres"><button type="button" class="qbtn" id="waterAdd" data-pop>Add</button></div></li>`
+       <div class="qrow"><span class="fx"><input type="number" id="waterIn" min="0" max="10000" step="any" inputmode="decimal" placeholder="Amount in ml" aria-label="Water in millilitres"></span><button type="button" class="qbtn" id="waterAdd" data-pop>Add</button></div></li>`
     + MEAL_DEFS.map(m => `<li class="qc"><label class="qh"><input type="checkbox" class="mt" data-meal="${m.id}"><b>${m.name} done</b></label>
-       <input type="text" class="mx" data-meal="${m.id}" maxlength="120" placeholder="What did you eat? Press Enter" enterkeyhint="done" aria-label="${m.name}: what did you eat"></li>`).join('')
+       <span class="fx"><input type="text" class="mx" data-meal="${m.id}" maxlength="120" placeholder="What did you eat? Press Enter" enterkeyhint="done" aria-label="${m.name}: what did you eat"></span></li>`).join('')
     + `<li class="qc"><div class="qh">${svgI(SNACK_ICON)}<b>Extra snack</b></div>
-       <input type="text" class="mx" data-meal="snack" maxlength="120" placeholder="Had a snack? Press Enter" enterkeyhint="done" aria-label="Extra snack"></li>`;
+       <span class="fx"><input type="text" class="mx" data-meal="snack" maxlength="120" placeholder="Had a snack? Press Enter" enterkeyhint="done" aria-label="Extra snack"></span></li>`;
 }
 function syncQuick() {                                // show the selected day's ticks in the cards (food text is write-only: it clears once logged)
   const e = getMeal(logDate());
