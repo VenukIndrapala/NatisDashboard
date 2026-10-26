@@ -15,6 +15,8 @@
   --green:#3a7551;--green2:#7cc47f;--leaf:#a9d6a4;--leaf2:#eaf3e8;
   --sky:#c5e3f1;--purple:#8d52a8;--lav:#f5f2f9;--rose:#c2347f;--blush:#f9edf1;--link:#c2345c;--bar:#d4b4f2;--barline:#cfa6ee;
   --blue:#5b9cf0;
+  --softpink:#FAB6A2;      /* Clairtone 8083-8 Soft Pink */
+  --softpink2:#FCCDBF;     /* lighter tint of it, for the card's soft gradient */
   --r:22px;               /* one corner radius for every card */
 }
 *{box-sizing:border-box}
@@ -83,20 +85,19 @@ h1,h2,h3{margin:0}
 .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
 .coin{position:relative;border:0;text-align:left;border-radius:var(--r);padding:16px 20px;height:176px;box-shadow:0 12px 26px rgba(40,40,70,.07);display:flex;flex-direction:column;justify-content:space-between;min-width:0}
 .coin.pink{background:linear-gradient(135deg,#ffd6dc,#ffe4e7)}
+.coin.blue,.coin.peach{background:linear-gradient(135deg,var(--softpink),var(--softpink2))}
 .coin.mint{background:linear-gradient(135deg,#c6efdf,#d9f6ec)}
-.coin.peach{background:linear-gradient(135deg,#ffdfc0,#ffe9d2)}
-.coin.blue{background:linear-gradient(135deg,#c9e0ff,#d9e9ff)}
 .coin.on{box-shadow:0 0 0 2px rgba(45,45,58,.22),0 16px 30px rgba(40,40,70,.12)}
 .ctop{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .ci{flex:none;width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.62);display:grid;place-items:center;color:var(--ink)}
 .ci svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .cname{display:flex;flex-direction:column;min-width:0}
 .cname b{font:700 16px/1.15 var(--font);color:var(--ink)}
-.cname small{font:400 13px/1.2 var(--font);color:#7d7f8e}
-.cp{font:500 15px var(--font);font-style:normal;color:#6e7080}
+.cname small{font:400 13px/1.2 var(--font);color:#6b514b}
+.cp{font:500 15px var(--font);font-style:normal;color:#5f4741}
 .cv{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
 .cv strong{font:700 32px/1 var(--font);color:var(--ink)}
-.cv span{font:400 13px var(--font);color:#6e7080;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.cv span{font:400 13px var(--font);color:#5f4741;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 
 /* ---------- chart card ---------- */
 .chartcard{margin-top:20px;padding:22px 26px 14px;border:1px solid var(--ln);border-radius:var(--r);background:#fff;box-shadow:0 22px 50px rgba(40,40,70,.06)}
