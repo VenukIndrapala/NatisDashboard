@@ -15,6 +15,7 @@
   --green:#3a7551;--green2:#7cc47f;--leaf:#a9d6a4;--leaf2:#eaf3e8;
   --sky:#c5e3f1;--purple:#8d52a8;--lav:#f5f2f9;--rose:#c2347f;--blush:#f9edf1;--link:#c2345c;--bar:#d4b4f2;--barline:#cfa6ee;
   --blue:#5b9cf0;
+  --r:22px;               /* one corner radius for every card */
 }
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
@@ -40,11 +41,11 @@ h1,h2,h3{margin:0}
 
 /* ---------- flip clock ---------- */
 .clock{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:26px}
-.tile{position:relative;height:158px;border-radius:16px;background:var(--sky);color:#fff;perspective:700px;font:400 104px/158px var(--font);text-align:center;user-select:none}
+.tile{position:relative;height:158px;border-radius:var(--r);background:var(--sky);color:#fff;perspective:700px;font:400 70px/158px var(--font);text-align:center;user-select:none}
 .tile .half{position:absolute;left:0;right:0;height:50%;overflow:hidden;background:var(--sky)}
 .tile .half span{position:absolute;left:0;right:0;height:158px;line-height:158px}
-.tile .top{top:0;border-radius:16px 16px 0 0}.tile .top span{top:0}
-.tile .bot{bottom:0;border-radius:0 0 16px 16px}.tile .bot span{bottom:0}
+.tile .top{top:0;border-radius:var(--r) var(--r) 0 0}.tile .top span{top:0}
+.tile .bot{bottom:0;border-radius:0 0 var(--r) var(--r)}.tile .bot span{bottom:0}
 .tile .flap{display:none;z-index:3;backface-visibility:hidden}
 .tile .ftop{transform-origin:50% 100%}.tile .fbot{transform-origin:50% 0}
 .tile::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;background:rgba(110,165,195,.35);z-index:5}
@@ -52,7 +53,7 @@ h1,h2,h3{margin:0}
 .tile .lab.l{left:14px}.tile .lab.r{right:12px}
 
 /* ---------- calendar ---------- */
-.cal{border-radius:8px;overflow:hidden;background:var(--leaf2);margin-bottom:34px}
+.cal{border-radius:var(--r);overflow:hidden;background:var(--leaf2);margin-bottom:34px}
 .cal-head{display:flex;align-items:center;justify-content:space-between;height:44px;padding:0 10px;background:var(--leaf);color:#fff}
 .ctitle{flex:1;border:0;background:none;color:#fff;font:700 17px var(--font);padding:8px}
 .cn{width:28px;height:28px;border:0;border-radius:50%;background:transparent;color:#fff;font:700 22px/1 var(--font);display:grid;place-items:center;transition:background .2s}
@@ -76,11 +77,11 @@ h1,h2,h3{margin:0}
 .bar span{font:400 15px var(--font);color:#b79bdc;white-space:nowrap}
 
 /* ---------- centre: heading band + water / food cards ---------- */
-.band{display:flex;align-items:center;justify-content:space-between;gap:16px;height:62px;padding:0 16px;background:#e9f2e6;margin-bottom:34px}
+.band{display:flex;align-items:center;justify-content:space-between;gap:16px;height:62px;padding:0 22px;border-radius:var(--r);background:#e9f2e6;margin-bottom:34px}
 .band h1{font:700 32px var(--font);color:var(--green)}
 .band span{font:500 14px var(--font);color:#5b7b5b;text-align:right}
 .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-.coin{position:relative;border:0;text-align:left;border-radius:18px;padding:16px 20px;height:176px;box-shadow:0 12px 26px rgba(40,40,70,.07);display:flex;flex-direction:column;justify-content:space-between;min-width:0}
+.coin{position:relative;border:0;text-align:left;border-radius:var(--r);padding:16px 20px;height:176px;box-shadow:0 12px 26px rgba(40,40,70,.07);display:flex;flex-direction:column;justify-content:space-between;min-width:0}
 .coin.pink{background:linear-gradient(135deg,#ffd6dc,#ffe4e7)}
 .coin.mint{background:linear-gradient(135deg,#c6efdf,#d9f6ec)}
 .coin.peach{background:linear-gradient(135deg,#ffdfc0,#ffe9d2)}
@@ -98,7 +99,7 @@ h1,h2,h3{margin:0}
 .cv span{font:400 13px var(--font);color:#6e7080;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 
 /* ---------- chart card ---------- */
-.chartcard{margin-top:20px;padding:22px 26px 14px;border:1px solid var(--ln);border-radius:34px;background:#fff;box-shadow:0 22px 50px rgba(40,40,70,.06)}
+.chartcard{margin-top:20px;padding:22px 26px 14px;border:1px solid var(--ln);border-radius:var(--r);background:#fff;box-shadow:0 22px 50px rgba(40,40,70,.06)}
 .chead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
 .csum{display:flex;align-items:center;gap:26px;padding:14px 20px;border:1px solid var(--ln);border-radius:16px;background:#fff;box-shadow:0 6px 16px rgba(40,40,70,.05)}
 .cs-l{display:flex;flex-direction:column}
@@ -129,27 +130,12 @@ h1,h2,h3{margin:0}
 .tip small{display:block;font:400 11px var(--font);color:var(--mu)}
 
 /* ---------- right column ---------- */
-.todo{padding:30px 22px 22px;background:var(--lav);margin-bottom:46px}
-.todo h2,.qwrap h2{font:700 30px var(--font)}
-.todo h2{color:var(--purple);margin-bottom:22px}
-#todo{list-style:none;margin:0;padding:0}
-#todo li{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #e1dce9}
-#todo li:last-child{border-bottom:1px solid #e1dce9}
-#todo input[type=checkbox]{appearance:none;flex:none;width:16px;height:16px;margin:0;border:2px solid var(--purple);border-radius:3px;background:#fff;display:grid;place-items:center}
-#todo input[type=checkbox]:checked{background:var(--purple)}
-#todo input[type=checkbox]:checked::after{content:"";width:4px;height:8px;margin-top:-2px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
-#todo input[type=checkbox]:disabled{opacity:.45}
-#todo .tt{flex:1;min-width:0;border:0;background:none;padding:0;font:400 17px var(--font);color:#8f8a9b;outline:none}
-#todo .tt::placeholder{color:#b7b2c2}
-#todo .tt:focus{color:var(--ink)}
-#todo li.done .tt{text-decoration:line-through;color:#b7b2c2}
-#todo .rm{border:0;background:none;color:var(--purple);font-size:20px;line-height:1;padding:0 2px;opacity:0;transition:opacity .2s}
-#todo li:hover .rm{opacity:1}
 
-/* ---------- quick add: water + breakfast / lunch / dinner + snack ---------- */
-.qwrap h2{color:var(--rose);padding-bottom:16px;border-bottom:1px solid #e7dfe3;margin-bottom:10px}
-.qdate{display:block;margin:0 0 14px;font:400 13px var(--font);color:#b9788f}
-.qbox{background:var(--blush);padding:16px}
+/* ---------- Today's Log: water + breakfast / lunch / dinner + snack ---------- */
+.qwrap{padding:28px 18px 18px;border-radius:var(--r);background:var(--blush)}
+.qwrap h2{font:700 30px var(--font);color:var(--rose);padding:0 4px 16px;border-bottom:1px solid #e7dfe3;margin-bottom:10px}
+.qdate{display:block;margin:0 4px 14px;font:400 13px var(--font);color:#b9788f}
+.qbox{padding:0}
 #qlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
 .qc{padding:14px 14px 14px;border-radius:14px;background:#fff;box-shadow:0 6px 16px rgba(194,52,92,.08)}
 .qh{display:flex;align-items:center;gap:10px;font:700 17px/1.2 var(--font);color:var(--link);margin:0}
@@ -173,15 +159,15 @@ label.qh{cursor:pointer}
 #toast.on{translate:-50% 0;opacity:1}
 
 /* ---------- smaller screens ---------- */
-@media(max-width:1280px){.dash{grid-template-columns:280px minmax(0,1fr);padding:40px 40px 60px}.col.right{grid-column:1/-1;flex-direction:row;gap:28px;align-items:flex-start}.col.right>*{flex:1}.todo{margin-bottom:0}}
+@media(max-width:1280px){.dash{grid-template-columns:280px minmax(0,1fr);padding:40px 40px 60px}.col.right{grid-column:1/-1}#qlist{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}}
 @media(max-width:900px){
   .dash{grid-template-columns:1fr;padding:28px 18px 60px}
-  .col.right{flex-direction:column}
+  #qlist{display:flex}
   .cards{grid-template-columns:1fr 1fr}
-  .chartcard{padding:16px 14px 10px;border-radius:26px}.plot{height:300px}
+  .chartcard{padding:16px 14px 10px}.plot{height:300px}
   .band h1{font-size:24px}.band span{font-size:12px}.cs-r strong{font-size:24px}.csum{gap:16px;padding:12px 14px}
   .coin{height:150px;padding:14px 14px}.cv strong{font-size:26px}
-  .tile{height:130px;font-size:84px;line-height:130px}.tile .half span{height:130px;line-height:130px}
+  .tile{height:130px;font-size:58px;line-height:130px}.tile .half span{height:130px;line-height:130px}
 }
 @media(prefers-reduced-motion:reduce){
   .page.show .reveal,.d.sel,.d.pv,.plot .line.draw,.pop{animation:none}
