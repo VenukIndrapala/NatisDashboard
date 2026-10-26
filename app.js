@@ -48,10 +48,10 @@ const fullDate = k => { const d = toDate(k); return DOW[d.getUTCDay()] + ', ' + 
 let today = todayKey();
 let GOALS = { ...DEFAULT_GOALS };
 const DATA = { days: {}, meals: {} };            // days['2026-10-26'] = { water }   meals['2026-10-26'] = { breakfast:{d,t}, lunch:{d,t}, dinner:{d,t}, snack:'' }
-let metric = 'water', tab = '1W', demo = !API, inflight = 0;
+let metric = 'water', tab = '1W', demo = !API, inflight = 0, fromCache = false;
 let SEL = { a: today, b: null, ranging: false, pv: null };      // calendar selection
 let view = { y: nowCol().y, m: nowCol().m - 1 };                // month shown in the calendar
-const LS_LOG = 'wf_demo_log', LS_MEALS = 'wf_demo_meals';
+const LS_LOG = 'wf_demo_log', LS_MEALS = 'wf_demo_meals', LS_CACHE = 'wf_cache';
 const lsGet = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
 const blankMeal = () => ({ breakfast: { d: false, t: '' }, lunch: { d: false, t: '' }, dinner: { d: false, t: '' }, snack: '' });
@@ -85,6 +85,13 @@ function demoMeals() {
 }
 function useDemo() { demo = true; DATA.days = demoDays(); DATA.meals = demoMeals(); GOALS = { ...DEFAULT_GOALS }; }
 
+/* ---------------- last-known data kept on this device (so a refresh never starts from zero) ---------------- */
+function saveCache() { if (API && !demo) lsSet(LS_CACHE, { days: DATA.days, meals: DATA.meals, goals: GOALS }); }
+function loadCache() {
+  const c = lsGet(LS_CACHE, null); if (!c || !c.days) return false;
+  DATA.days = c.days; DATA.meals = c.meals || {}; GOALS = { ...DEFAULT_GOALS, ...(c.goals || {}), food: DEFAULT_GOALS.food }; return true;
+}
+
 /* ---------------- loading ---------------- */
 async function load(first) {
   if (!API) { useDemo(); renderAll(true); return; }
@@ -94,10 +101,11 @@ async function load(first) {
     if (inflight) return;                        // a save is still travelling - don't overwrite it with older sheet data
     demo = false; DATA.days = d.days || {}; DATA.meals = d.meals || {};
     GOALS = { ...DEFAULT_GOALS, ...(d.goals || {}), food: DEFAULT_GOALS.food };
-    renderAll(first);
+    saveCache(); renderAll(first && !fromCache);
   } catch (e) {
     console.warn(e);
-    if (first) { toast('Offline - showing sample data'); useDemo(); renderAll(true); }
+    if (first && fromCache) toast('Offline - showing last saved data');
+    else if (first) { toast('Offline - showing sample data'); useDemo(); renderAll(true); }
   }
 }
 function renderAll(anim) { renderCards(); updateLabel(); paintSel(); draw(anim); }
@@ -322,53 +330,54 @@ function buildQuick() {
     `<li class="qc"><div class="qh">${svgI(WATER_ICON)}<b>Water</b></div>
        <div class="qrow"><input type="number" id="waterIn" min="0" max="10000" step="any" inputmode="decimal" placeholder="Amount in ml" aria-label="Water in millilitres"><button type="button" class="qbtn" id="waterAdd" data-pop>Add</button></div></li>`
     + MEAL_DEFS.map(m => `<li class="qc"><label class="qh"><input type="checkbox" class="mt" data-meal="${m.id}"><b>${m.name} done</b></label>
-       <input type="text" class="mx" data-meal="${m.id}" maxlength="120" placeholder="What did you eat?" aria-label="${m.name}: what did you eat"></li>`).join('')
+       <input type="text" class="mx" data-meal="${m.id}" maxlength="120" placeholder="What did you eat? Press Enter" enterkeyhint="done" aria-label="${m.name}: what did you eat"></li>`).join('')
     + `<li class="qc"><div class="qh">${svgI(SNACK_ICON)}<b>Extra snack</b></div>
-       <input type="text" class="mx" data-meal="snack" maxlength="120" placeholder="Had a snack? What was it?" aria-label="Extra snack"></li>`;
+       <input type="text" class="mx" data-meal="snack" maxlength="120" placeholder="Had a snack? Press Enter" enterkeyhint="done" aria-label="Extra snack"></li>`;
 }
-function syncQuick() {                                // show the selected day's ticks / text in the cards
+function syncQuick() {                                // show the selected day's ticks in the cards (food text is write-only: it clears once logged)
   const e = getMeal(logDate());
   $$('#qlist .mt').forEach(c => { c.checked = !!e[c.dataset.meal].d; });
-  $$('#qlist .mx').forEach(i => {
-    if (document.activeElement === i) return;       // never overwrite what is being typed
-    const v = i.dataset.meal === 'snack' ? e.snack : e[i.dataset.meal].t; if (i.value !== v) i.value = v;
-  });
 }
 async function logWater(ml) {
   const k = logDate(), had = !!DATA.days[k], d = DATA.days[k] || (DATA.days[k] = { water: 0 });
   d.water = r1((+d.water || 0) + ml);
   renderCards(); paintSel(); draw(false); inflight++;
   try {
-    if (API && !demo) { const r = await post({ action: 'log', date: k, water: ml, note: 'Water' }); if (r.error) throw new Error(r.error); }
-    else { const l = lsGet(LS_LOG, []); l.push({ date: k, water: ml }); lsSet(LS_LOG, l); }
+    if (API && !demo) {
+      const r = await post({ action: 'log', date: k, water: ml, note: 'Water' }); if (r.error) throw new Error(r.error);
+      if (r.day && typeof r.day.water === 'number') { d.water = r.day.water; renderCards(); draw(false); }   // show exactly what the sheet now holds
+      saveCache();
+    } else { const l = lsGet(LS_LOG, []); l.push({ date: k, water: ml }); lsSet(LS_LOG, l); }
     toast('Logged · +' + fmt(ml) + ' ml · ' + (k === today ? 'today' : short(k)));
   } catch (e) {
     d.water = r1(d.water - ml); if (!had) delete DATA.days[k];
     renderCards(); paintSel(); draw(false); toast('Not Saved - Check Connection');
   } finally { inflight--; }
 }
-async function saveMeal(k, meal, patch) {             // patch = { d: true|false } and / or { t: 'text' }
+async function saveMeal(k, meal, patch, restore) {   // patch = { d: true|false }  or  { add: 'food typed' }
   const before = DATA.meals[k] ? JSON.parse(JSON.stringify(DATA.meals[k])) : null, e = DATA.meals[k] || (DATA.meals[k] = blankMeal());
-  if (meal === 'snack') { if (patch.t !== undefined) e.snack = patch.t; }
-  else { if (patch.d !== undefined) e[meal].d = patch.d; if (patch.t !== undefined) e[meal].t = patch.t; }
+  const cat = (a, b) => a ? a + ', ' + b : b, name = meal === 'snack' ? 'Extra Snack' : MEAL_DEFS.find(m => m.id === meal).name;
+  if (meal === 'snack') { if (patch.add) e.snack = cat(e.snack, patch.add); }
+  else { if (patch.d !== undefined) e[meal].d = patch.d; if (patch.add) e[meal].t = cat(e[meal].t, patch.add); }
   renderCards(); draw(false); inflight++;
   try {
-    if (API && !demo) { const r = await post({ action: 'meal', date: k, meal, ...patch }); if (r.error) throw new Error(r.error); }
-    else lsSet(LS_MEALS, { ...lsGet(LS_MEALS, {}), [k]: e });
-    toast('Saved · ' + (meal === 'snack' ? 'Extra Snack' : MEAL_DEFS.find(m => m.id === meal).name) + ' · ' + (k === today ? 'today' : short(k)));
+    if (API && !demo) {
+      const r = await post({ action: 'meal', date: k, meal, ...patch}); if (r.error) throw new Error(r.error);
+      if (patch.add && r.ver !== 2) throw new Error('Code.gs is outdated');   // an old Code.gs would say "ok" without saving the food
+      saveCache();
+    } else lsSet(LS_MEALS, { ...lsGet(LS_MEALS, {}), [k]: e });
+    toast((patch.add ? 'Logged · ' + name + ' · ' + (patch.add.length > 28 ? patch.add.slice(0, 27) + '…' : patch.add) : 'Saved · ' + name) + ' · ' + (k === today ? 'today' : short(k)));
   } catch (err) {
     if (before) DATA.meals[k] = before; else delete DATA.meals[k];
-    renderCards(); draw(false); syncQuick(); toast('Not Saved - Check Connection');
+    renderCards(); draw(false); syncQuick(); if (restore) restore();
+    toast(/outdated/.test(err.message) ? 'Redeploy The New Code.gs' : 'Not Saved - Check Connection');
   } finally { inflight--; }
 }
-$('#qlist').addEventListener('change', e => {
-  const t = e.target, meal = t.dataset.meal;
-  if (t.classList.contains('mt')) saveMeal(logDate(), meal, { d: t.checked });
-  else if (t.classList.contains('mx')) {
-    const cur = meal === 'snack' ? getMeal(logDate()).snack : getMeal(logDate())[meal].t, v = t.value.trim();
-    if (v !== cur) saveMeal(logDate(), meal, { t: v });
-  }
-});
+$('#qlist').addEventListener('change', e => { const t = e.target; if (t.classList.contains('mt')) saveMeal(logDate(), t.dataset.meal, { d: t.checked }); });
+function logFood(i) {                                  // Enter pressed: log the food to the sheet, then clear the box
+  const v = i.value.trim().slice(0, 120); i.value = ''; if (!v) return;
+  saveMeal(logDate(), i.dataset.meal, { add: v }, () => { if (!i.value) i.value = v; });
+}
 function addWater() {
   const i = $('#waterIn'), v = Number(i.value);
   if (!(v > 0)) return toast('Enter A Water Amount');
@@ -379,7 +388,7 @@ $('#qlist').addEventListener('click', e => { if (e.target.closest('#waterAdd')) 
 $('#qlist').addEventListener('keydown', e => {
   if (e.key !== 'Enter') return;
   if (e.target.id === 'waterIn') { e.preventDefault(); addWater(); }
-  else if (e.target.classList.contains('mx')) e.target.blur();
+  else if (e.target.classList.contains('mx')) { e.preventDefault(); logFood(e.target); }
 });
 
 /* click "pop" feedback + keyboard */
@@ -394,4 +403,5 @@ document.addEventListener('keydown', e => {
    ===================================================================== */
 buildClock(); buildBars(); buildCards(); buildTabs(); renderCal(0); buildQuick(); updateLabel();
 tickClock(); setInterval(tickClock, 1000);
+if (API && loadCache()) { fromCache = true; renderAll(true); }   // show the last saved numbers straight away, then update from the sheet
 load(true); if (API) setInterval(() => load(false), REFRESH_MS);
