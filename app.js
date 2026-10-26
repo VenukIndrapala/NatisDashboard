@@ -6,7 +6,7 @@
    API = 'https://script.google.com/macros/s/.../exec'  -> reads/writes the Google Sheet
    (see Code.gs).
    ===================================================================== */
-const API = 'https://script.google.com/macros/s/AKfycbwA25xqTe7YNT-VUdEnXFOH71pX8S0Ep-fJIz5cnqoPTb5PuHTEHcTCTm9MTjnbEvi8/exec';                       // <-- paste your Apps Script web app URL here
+const API = 'https://script.google.com/macros/s/AKfycbwCVYsPL8zSiphJoovWKgLPYJ-lok_pSqgnKFFj7vEnDS3ETprGROm0TSgNJ1VT2f9_/exec';                       // <-- paste your Apps Script web app URL here
 const TZ = 'Asia/Colombo';            // Sri Lanka time
 const REFRESH_MS = 60000;             // how often the dashboard re-reads the sheet
 
@@ -17,9 +17,6 @@ const METRICS = [
 ];
 const MEAL_DEFS = [{ id: 'breakfast', name: 'Breakfast' }, { id: 'lunch', name: 'Lunch' }, { id: 'dinner', name: 'Dinner' }];
 const DEFAULT_GOALS = { water: 2500, food: 3 };
-const DEFAULT_TASKS = [
-  { t: 'Water before meals', d: false }, { t: 'Log breakfast, lunch and dinner', d: false }, { t: 'Log dinner', d: false }
-];
 const WATER_ICON = '<path d="M12 3S5 11 5 15a7 7 0 0 0 14 0c0-4-7-12-7-12Z"/>';
 const SNACK_ICON = '<path d="M5 19C5 10 10 5 20 4c0 10-4 16-12 16"/><path d="M5 19c3-5 6-8 10-10"/>';
 
@@ -49,12 +46,12 @@ const fullDate = k => { const d = toDate(k); return DOW[d.getUTCDay()] + ', ' + 
 
 /* ---------------- state ---------------- */
 let today = todayKey();
-let GOALS = { ...DEFAULT_GOALS }, TASKS = DEFAULT_TASKS.map(t => ({ ...t }));
+let GOALS = { ...DEFAULT_GOALS };
 const DATA = { days: {}, meals: {} };            // days['2026-10-26'] = { water }   meals['2026-10-26'] = { breakfast:{d,t}, lunch:{d,t}, dinner:{d,t}, snack:'' }
-let metric = 'water', tab = '1W', demo = !API, taskDirty = false, inflight = 0;
+let metric = 'water', tab = '1W', demo = !API, inflight = 0;
 let SEL = { a: today, b: null, ranging: false, pv: null };      // calendar selection
 let view = { y: nowCol().y, m: nowCol().m - 1 };                // month shown in the calendar
-const LS_LOG = 'wf_demo_log', LS_TASKS = 'wf_tasks', LS_MEALS = 'wf_demo_meals';
+const LS_LOG = 'wf_demo_log', LS_MEALS = 'wf_demo_meals';
 const lsGet = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
 const blankMeal = () => ({ breakfast: { d: false, t: '' }, lunch: { d: false, t: '' }, dinner: { d: false, t: '' }, snack: '' });
@@ -86,7 +83,7 @@ function demoMeals() {
   }
   return Object.assign(meals, lsGet(LS_MEALS, {}));
 }
-function useDemo() { demo = true; DATA.days = demoDays(); DATA.meals = demoMeals(); GOALS = { ...DEFAULT_GOALS }; if (!taskDirty) TASKS = lsGet(LS_TASKS, DEFAULT_TASKS.map(t => ({ ...t }))); }
+function useDemo() { demo = true; DATA.days = demoDays(); DATA.meals = demoMeals(); GOALS = { ...DEFAULT_GOALS }; }
 
 /* ---------------- loading ---------------- */
 async function load(first) {
@@ -97,14 +94,13 @@ async function load(first) {
     if (inflight) return;                        // a save is still travelling - don't overwrite it with older sheet data
     demo = false; DATA.days = d.days || {}; DATA.meals = d.meals || {};
     GOALS = { ...DEFAULT_GOALS, ...(d.goals || {}), food: DEFAULT_GOALS.food };
-    if (!taskDirty) TASKS = d.tasks || [];
     renderAll(first);
   } catch (e) {
     console.warn(e);
     if (first) { toast('Offline - showing sample data'); useDemo(); renderAll(true); }
   }
 }
-function renderAll(anim) { renderCards(); updateLabel(); paintSel(); draw(anim); if (!document.activeElement || !document.activeElement.classList.contains('tt')) renderTodo(); }
+function renderAll(anim) { renderCards(); updateLabel(); paintSel(); draw(anim); }
 
 /* =====================================================================
    FLIP CLOCK
@@ -317,30 +313,6 @@ $('#plot').addEventListener('pointerleave', () => S && hover(S.pts.length - 1));
 new ResizeObserver(() => draw(false)).observe($('#plot'));
 
 /* =====================================================================
-   TO-DO LIST
-   ===================================================================== */
-function renderTodo() {
-  $('#todo').innerHTML = TASKS.map((t, i) => `<li class="${t.d ? 'done' : ''}"><input type="checkbox" data-i="${i}" ${t.d ? 'checked' : ''} aria-label="Done"><input class="tt" data-i="${i}" value="${esc(t.t)}" maxlength="80"><button type="button" class="rm" data-i="${i}" aria-label="Remove task">×</button></li>`).join('')
-    + (TASKS.length < 30 ? '<li><input type="checkbox" disabled aria-hidden="true"><input class="tt" id="newTask" placeholder="To-do" maxlength="80" aria-label="New task"></li>' : '');
-}
-let taskTimer = 0;
-function saveTasks() {
-  taskDirty = true; clearTimeout(taskTimer);
-  taskTimer = setTimeout(async () => {
-    try { if (API && !demo) { const r = await post({ action: 'tasks', tasks: TASKS }); if (r.error) throw new Error(r.error); } else lsSet(LS_TASKS, TASKS); taskDirty = false; }
-    catch (e) { toast('Tasks Not Saved - Check Connection'); }
-  }, 600);
-}
-$('#todo').addEventListener('change', e => {
-  const t = e.target, i = t.dataset.i;
-  if (t.type === 'checkbox' && i !== undefined) { TASKS[i].d = t.checked; renderTodo(); saveTasks(); }
-  else if (t.id === 'newTask') { const v = t.value.trim(); if (v) { TASKS.push({ t: v, d: false }); renderTodo(); saveTasks(); $('#newTask') && $('#newTask').focus(); } }
-  else if (t.classList.contains('tt')) { const v = t.value.trim(); if (v) TASKS[i].t = v; else TASKS.splice(i, 1); renderTodo(); saveTasks(); }
-});
-$('#todo').addEventListener('click', e => { const b = e.target.closest('.rm'); if (b) { TASKS.splice(+b.dataset.i, 1); renderTodo(); saveTasks(); } });
-$('#todo').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.classList.contains('tt')) e.target.blur(); });
-
-/* =====================================================================
    QUICK ADD  (5 cards: water, breakfast, lunch, dinner, extra snack)
    ===================================================================== */
 const svgI = p => `<span class="qi"><svg viewBox="0 0 24 24">${p}</svg></span>`;
@@ -420,6 +392,6 @@ document.addEventListener('keydown', e => {
 /* =====================================================================
    START
    ===================================================================== */
-buildClock(); buildBars(); buildCards(); buildTabs(); renderCal(0); renderTodo(); buildQuick(); updateLabel();
+buildClock(); buildBars(); buildCards(); buildTabs(); renderCal(0); buildQuick(); updateLabel();
 tickClock(); setInterval(tickClock, 1000);
 load(true); if (API) setInterval(() => load(false), REFRESH_MS);
