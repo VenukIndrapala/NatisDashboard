@@ -677,20 +677,33 @@ pload(); if (API) setInterval(pload, REFRESH_MS);
 
 /* =====================================================================
    KOI FISH  (two fish resting beside the cow)
-   - the fish, their swim path, trailing delays and shadow are exactly the ones in the fish page (see the "Two koi" block in style.css)
-   - at rest they are frozen on a straight stretch of the path, small, next to the cow
-   - tap a fish: both swim around the dashboard along that same path; tap again: they zip back and settle beside the cow
+   ---------------------------------------------------------------------
+   - at rest they are frozen on a straight stretch of the koi path, small, next to the cow (CSS-driven, see the "Two koi" block in style.css)
+   - tap a fish: both start swimming from EXACTLY where they are sitting (nothing is dragged to the centre)
+     and then wander wherever they like - there is no fixed path any more
+   - tap again: they turn, swim back to the cow, shrink and settle in their resting pose
    ===================================================================== */
-const pond = $('#pond'), fishEls = $$('#pond .fish'), coilEls = $$('#pond .koiCoil');
-const REST_S = .78, FISH_LOOP = 20000;            // size of the resting fish, length of one swim around the path (ms)
-let fstate = 'rest', fanims = [], fRestCT = [], fRestProg = 0, fC = [], fRaf = 0, fTimer = 0;
+const pond = $('#pond'), fishEls = $$('#pond .fish');
+const fishCoils = fishEls.map(f => [...f.querySelectorAll('.koiCoil')]);   // 15 segments per fish, tail (0) ... head (14)
+const REST_S = .78;                                // size of the resting fish
+const HEAD = 14;
+const SCALE_ME = [1, 1.2, 1.35, 1.55, 1.75, 1.9, 2, 2, 2, 1.9, 1.75, 1.55, 1.35, 1.2, 1];   // body thickness per segment (same as the CSS --scaleMe values)
+let fstate = 'rest', fC = [], fShape = [], fRaf = 0, swimRaf = 0, SW = null;   // fstate: rest | roam | back | settle
 const fishT = (i, tx, ty, s) => `translate(${tx}px,${ty}px) scale(${i === 1 ? -s : s},${s})`;   // the 2nd fish is the mirror image, as in the fish page
-function fishCentres() {                           // centre of each fish at the resting size (before it is moved next to the cow)
-  fC = fishEls.map((f, i) => {
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rnd = (a, b) => a + Math.random() * (b - a);
+const angDiff = (a, b) => { let d = a - b; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; };
+const centreOf = el => { const r = el.getBoundingClientRect(); return { x: (r.left + r.right) / 2, y: (r.top + r.bottom) / 2 }; };
+
+/* ---------------- resting pose ---------------- */
+function fishCentres() {                           // centre of each resting fish + the shape of its body around that centre (before it is moved next to the cow)
+  fC = []; fShape = [];
+  fishEls.forEach((f, i) => {
     f.classList.remove('glide'); f.style.transform = fishT(i, 0, 0, REST_S);
     let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
-    [...f.children].forEach(c => { const r = c.getBoundingClientRect(); x0 = Math.min(x0, r.left); y0 = Math.min(y0, r.top); x1 = Math.max(x1, r.right); y1 = Math.max(y1, r.bottom); });
-    return [(x0 + x1) / 2, (y0 + y1) / 2];
+    const pts = [...f.children].map(c => { const r = c.getBoundingClientRect(); x0 = Math.min(x0, r.left); y0 = Math.min(y0, r.top); x1 = Math.max(x1, r.right); y1 = Math.max(y1, r.bottom); return [(r.left + r.right) / 2, (r.top + r.bottom) / 2]; });
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    fC.push([cx, cy]); fShape.push(pts.map(p => [p[0] - cx, p[1] - cy]));
   });
 }
 function fishRestSpots() {                         // where each resting fish should sit: just left of the cow, one above the other
@@ -705,39 +718,118 @@ function layoutFish() {
   pond.classList.add('ready');
 }
 function queueFish() { if (fstate !== 'rest' || fRaf) return; fRaf = requestAnimationFrame(() => { fRaf = 0; layoutFish(); }); }
-function fishOut() {                               // swim off around the dashboard
-  fstate = 'out';
-  fanims.forEach(a => a.playbackRate = 1);
-  pond.classList.remove('rest');
-  fishEls.forEach((f, i) => { f.style.setProperty('--glide', '1.8s'); f.classList.add('glide'); f.style.transform = fishT(i, 0, 0, 1); });
-  setTimeout(() => { if (fstate === 'out') fstate = 'roam'; }, 1800);
+
+/* ---------------- free swimming ---------------- */
+function fishOut() {                               // swim off - starting from the exact pose each fish is resting in
+  const bodies = fishCoils.map(cs => cs.map(centreOf));                      // where every segment is right now (screen px)
+  fishEls.forEach(f => { f.classList.remove('glide'); f.style.transform = 'translate(0px,0px) scale(1,1)'; });
+  fishCoils.forEach(cs => cs.forEach(c => { c.style.offsetPath = 'none'; c.style.transform = 'none'; }));   // leave the fixed path: from now on the code places every segment
+  const base = fishCoils.map(cs => centreOf(cs[0]));                         // where an un-moved segment sits (all segments share it)
+  SW = {
+    base, fs: REST_S, fsT: 1, last: performance.now(), backT: 0, settleT: 0,
+    fish: bodies.map(p => {
+      let s = 0; for (let k = 0; k < HEAD; k++) s += Math.hypot(p[k + 1].x - p[k].x, p[k + 1].y - p[k].y);
+      return { p, d: s / HEAD / REST_S, th: Math.atan2(p[HEAD].y - p[10].y, p[HEAD].x - p[10].x), v: 25, vt: rnd(80, 140), w: 0, wt: 0, tTurn: 0, tSpeed: rnd(1, 2.5), ph: rnd(0, 6.28), amp: 0, dist: 1e9 };
+    })
+  };
+  fstate = 'roam';
+  if (!swimRaf) swimRaf = requestAnimationFrame(swimStep);
 }
-function fishBack() {                              // speed along the path to the resting pose while shrinking back to the cow
-  fstate = 'back';
-  const prog = fanims[14].effect.getComputedTiming().progress || 0, dur = 2800;
-  let d = (fRestProg - prog + 1) % 1; if (d < .14) d += 1;
-  fanims.forEach(a => a.playbackRate = d * FISH_LOOP / dur);
-  const sp = fishRestSpots() || [[0, 0], [0, 0]];
-  fishEls.forEach((f, i) => { f.style.setProperty('--glide', dur + 'ms'); f.classList.add('glide'); f.style.transform = fishT(i, sp[i][0] - fC[i][0], sp[i][1] - fC[i][1], REST_S); });
-  clearTimeout(fTimer);
-  fTimer = setTimeout(() => {
-    fanims.forEach((a, k) => { a.pause(); a.currentTime = fRestCT[k]; a.playbackRate = 1; });
-    pond.classList.add('rest'); fstate = 'rest'; layoutFish();
-  }, dur + 40);
+function fishBack() { fstate = 'back'; SW.fsT = REST_S; SW.backT = 0; }
+
+function steer(F, dt, W, H, goal) {                // moves the head; the body follows it
+  const h = F.p[HEAD];
+  if (goal) {                                      // heading home: aim at the resting spot and slow down as it gets close
+    F.dist = Math.hypot(goal.x - h.x, goal.y - h.y);
+    F.w = clamp(angDiff(Math.atan2(goal.y - h.y, goal.x - h.x), F.th) * 4, -3.2, 3.2);
+    F.vt = clamp(F.dist * 1.8, 45, 260);
+    F.v += (F.vt - F.v) * (1 - Math.exp(-dt * 4));
+  } else {                                         // wandering: random gentle turns, speed changes and the odd quick dart
+    F.tTurn -= dt; if (F.tTurn <= 0) { F.wt = rnd(-1.4, 1.4) * (Math.random() < .15 ? 1.8 : 1); F.tTurn = rnd(.7, 2.6); }
+    F.tSpeed -= dt; if (F.tSpeed <= 0) { const dart = Math.random() < .12; F.vt = dart ? rnd(230, 290) : rnd(70, 180); F.tSpeed = dart ? rnd(.4, .8) : rnd(1.2, 3.2); }
+    F.w += (F.wt - F.w) * (1 - Math.exp(-dt * 3));
+    const m = 140; let ax = 0, ay = 0;             // near a screen edge: turn back towards the middle
+    if (h.x < m) ax += (m - h.x) / m; if (h.x > W - m) ax -= (h.x - (W - m)) / m;
+    if (h.y < m) ay += (m - h.y) / m; if (h.y > H - m) ay -= (h.y - (H - m)) / m;
+    const push = Math.hypot(ax, ay);
+    if (push > 0) { const k = Math.min(1, push * 2); F.w = F.w * (1 - k) + clamp(angDiff(Math.atan2(ay, ax), F.th) * 3, -2.6, 2.6) * k; }
+    F.w = clamp(F.w, -2.6, 2.6);
+    F.v += (F.vt - F.v) * (1 - Math.exp(-dt * 1.6));
+    F.dist = 1e9;
+  }
+  F.th += F.w * dt;
+  h.x += Math.cos(F.th) * F.v * dt; h.y += Math.sin(F.th) * F.v * dt;
+  if (!goal) { h.x = clamp(h.x, 16, W - 16); h.y = clamp(h.y, 16, H - 16); }
 }
+function paintFish(F, i, fs) {                     // place every segment: position, direction of travel, thickness, plus a little tail wiggle
+  const p = F.p, cs = fishCoils[i], bs = SW.base[i];
+  for (let k = 0; k <= HEAD; k++) {
+    const a = p[Math.min(k + 1, HEAD)], b = p[Math.max(k - 1, 0)], ang = Math.atan2(a.y - b.y, a.x - b.x);
+    const o = Math.sin(F.ph - k * .55) * F.amp * 3.2 * fs * Math.pow(1 - k / HEAD, 1.2);
+    const x = p[k].x - Math.sin(ang) * o, y = p[k].y + Math.cos(ang) * o;
+    cs[k].style.transform = `translate(${(x - bs.x).toFixed(2)}px,${(y - bs.y).toFixed(2)}px) rotate(${ang.toFixed(3)}rad) scale(${(SCALE_ME[k] * fs).toFixed(3)})`;
+  }
+  fishEls[i].style.filter = `drop-shadow(${(56 * fs).toFixed(1)}px ${(4.7 * fs).toFixed(1)}px ${(5 * fs).toFixed(1)}px rgba(0,0,0,.3))`;   // the same shadow as the CSS, scaled with the fish
+}
+function swimStep(now) {
+  swimRaf = requestAnimationFrame(swimStep);
+  if (!SW) return;
+  const dt = clamp((now - SW.last) / 1000, 0, .05); SW.last = now;
+  const W = innerWidth, H = innerHeight, spots = fstate === 'roam' ? null : fishRestSpots();
+  SW.fs += (SW.fsT - SW.fs) * (1 - Math.exp(-dt * 3));
+  const fs = SW.fs; let worst = 0, arrived = true, calm = true;
+  SW.fish.forEach((F, i) => {
+    const p = F.p;
+    if (fstate === 'settle' && spots) {            // glide every segment into the resting pose
+      const k = 1 - Math.exp(-dt * 8);
+      p.forEach((q, j) => {
+        const tx = spots[i][0] + fShape[i][j][0], ty = spots[i][1] + fShape[i][j][1];
+        q.x += (tx - q.x) * k; q.y += (ty - q.y) * k; worst = Math.max(worst, Math.hypot(tx - q.x, ty - q.y));
+      });
+      F.amp += (0 - F.amp) * (1 - Math.exp(-dt * 8)); if (F.amp > .05) calm = false;
+    } else {
+      const goal = fstate === 'back' && spots ? { x: spots[i][0] + fShape[i][HEAD][0], y: spots[i][1] + fShape[i][HEAD][1] } : null;
+      steer(F, dt, W, H, goal);
+      const d = F.d * fs;                          // body: every segment stays one step behind the one in front of it
+      for (let k = HEAD - 1; k >= 0; k--) {
+        const a = p[k + 1], b = p[k]; let dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy);
+        if (l < 1e-6) { dx = -Math.cos(F.th); dy = -Math.sin(F.th); l = 1; }
+        b.x = a.x + dx / l * d; b.y = a.y + dy / l * d;
+      }
+      F.amp += (1 - F.amp) * (1 - Math.exp(-dt * 2));
+      F.ph += dt * (4 + F.v / 30);
+      if (F.dist > 16) arrived = false;
+    }
+    paintFish(F, i, fs);
+  });
+  if (fstate === 'back') {
+    SW.backT += dt;
+    if (!spots) return;
+    if (arrived || SW.backT > 9) { fstate = 'settle'; SW.settleT = 0; }
+  } else if (fstate === 'settle') {
+    SW.settleT += dt;
+    if (!spots || (worst < .35 && Math.abs(fs - REST_S) < .004 && calm) || SW.settleT > 2.5) fishSettled();
+  }
+}
+function fishSettled() {                           // hand the fish back to the CSS resting pose
+  cancelAnimationFrame(swimRaf); swimRaf = 0; SW = null;
+  fishCoils.forEach(cs => cs.forEach(c => { c.style.transform = ''; c.style.offsetPath = ''; }));
+  fishEls.forEach(f => { f.style.filter = ''; });
+  fstate = 'rest'; fC = []; fishCentres(); layoutFish();
+}
+
 pond.addEventListener('click', e => {
   if (!e.target.closest('.koiCoil')) return;
-  if (fstate === 'rest') fishOut(); else if (fstate === 'roam') fishBack();
+  if (fstate === 'rest') fishOut();
+  else if (fstate === 'roam') fishBack();
+  else if (fstate === 'back') { fstate = 'roam'; SW.fsT = 1; }   // tapped again on the way home: swim off again
 });
 addEventListener('scroll', queueFish, { passive: true });
-addEventListener('resize', () => { fC = []; queueFish(); });
+addEventListener('resize', () => { if (fstate === 'rest') { fC = []; queueFish(); } });
 (function startFish() {
-  fanims = coilEls.map(c => c.getAnimations().find(a => a.animationName === 'fishAnim'));
-  if (fanims.some(a => !a)) return;                // the browser can't run them: leave the fish hidden
-  fRestCT = fanims.map(a => a.currentTime || 0);
-  fRestProg = fanims[14].effect.getComputedTiming().progress || 0;
+  if (!fishCoils.every(cs => cs.length === HEAD + 1 && cs.every(c => c.getAnimations().some(a => a.animationName === 'fishAnim')))) return;   // the browser can't run them: leave the fish hidden
   fishCentres(); layoutFish();
   [300, 900, 1600, 2600].forEach(t => setTimeout(() => { if (fstate === 'rest') { fC = []; layoutFish(); } }, t));   // re-place once the cards have finished sliding in and fonts have loaded
-  addEventListener('load', () => { fC = []; queueFish(); });
-  if (window.ResizeObserver) new ResizeObserver(() => { fC = []; queueFish(); }).observe($('.dash'));
+  addEventListener('load', () => { if (fstate === 'rest') { fC = []; queueFish(); } });
+  if (window.ResizeObserver) new ResizeObserver(() => { if (fstate === 'rest') { fC = []; queueFish(); } }).observe($('.dash'));
 })();
