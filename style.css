@@ -186,3 +186,37 @@ label.qh{cursor:pointer}
   .plot .line.draw{stroke-dashoffset:0}
   .cal-body,.fill,.tip{transition:none}
 }
+
+/* ---------- Poop card + trend chart (loads after style.css) ---------- */
+.cards{grid-template-columns:1fr 1fr}
+.pcard{grid-column:1/-1}
+@media(min-width:1440px){.cards{grid-template-columns:1fr 1fr 1.2fr}.pcard{grid-column:auto}}
+
+.pcard{position:relative;display:flex;flex-direction:column;justify-content:space-between;min-width:0;height:176px;padding:16px 16px 16px 20px;border-radius:var(--r);background:linear-gradient(135deg,#ffd6dc,#ffe4e7);box-shadow:0 12px 26px rgba(40,40,70,.07)}
+.ptop{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;min-width:0}
+.pslot{flex:none;width:104px;height:92px;margin-top:-4px;display:grid;place-items:center}
+.pslot img{display:block;max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none}
+.pslot img.gone{visibility:hidden}
+.pcheck{display:flex;align-items:center;gap:10px;cursor:pointer;font:700 15px/1.2 var(--font);color:var(--ink)}
+.pcheck input{appearance:none;flex:none;width:26px;height:26px;margin:0;border:2.5px solid var(--ink);border-radius:8px;background:#fff;display:grid;place-items:center;cursor:pointer;transition:background .2s,scale .25s cubic-bezier(.34,1.56,.64,1)}
+.pcheck input:checked{background:var(--ink);scale:1.08}
+.pcheck input:checked::after{content:"";width:6px;height:12px;margin-top:-2px;border:solid #fff;border-width:0 3px 3px 0;transform:rotate(45deg)}
+.pcheck input:disabled{cursor:default}
+.pcheck input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* the flying poop: fish-style offset-path swim, upright, with a little wobble */
+.pfly{position:absolute;left:0;top:0;z-index:50;pointer-events:none;offset-rotate:0deg}
+.pfly img{display:block;width:100%;height:auto;animation:pwob .42s ease-in-out alternate infinite}
+@keyframes pwob{from{rotate:-9deg}to{rotate:9deg}}
+
+/* splash on the chart's x axis */
+.psplash{position:absolute;width:0;height:0;pointer-events:none;z-index:60}
+.psplash i{position:absolute;left:-34px;top:-10px;width:68px;height:20px;border:3px solid var(--ink);border-radius:50%;opacity:0;animation:pring .8s ease-out forwards}
+.psplash i:nth-of-type(2){animation-delay:.14s;left:-26px;width:52px}
+@keyframes pring{0%{scale:.2;opacity:.9}100%{scale:1.7;opacity:0}}
+.psplash b{position:absolute;left:-4px;top:-4px;width:8px;height:8px;border-radius:50%;background:var(--ink2);opacity:0;animation:pdrop .75s cubic-bezier(.3,.6,.5,1) forwards}
+.psplash b:nth-of-type(1){--tx:-38px}.psplash b:nth-of-type(2){--tx:-18px}.psplash b:nth-of-type(3){--tx:2px}
+.psplash b:nth-of-type(4){--tx:20px}.psplash b:nth-of-type(5){--tx:40px}
+@keyframes pdrop{0%{translate:0 0;opacity:1}50%{translate:var(--tx) -48px;opacity:1}100%{translate:calc(var(--tx)*1.5) 6px;opacity:0}}
+
+@media(prefers-reduced-motion:reduce){.pfly img,.psplash i,.psplash b{animation:none}}
