@@ -49,8 +49,21 @@ h1,h2,h3{margin:0}
 /* ---------- page layout ---------- */
 .page{display:none;min-height:100vh}
 .page.show{display:block}
-.dash{display:grid;grid-template-columns:280px minmax(0,1fr) 300px;gap:30px;align-items:start;max-width:1500px;margin:0 auto;padding:48px 48px 60px}
+.dash{display:grid;grid-template-columns:280px minmax(0,1fr) 300px;grid-template-rows:auto auto auto;gap:20px 30px;align-items:stretch;max-width:1500px;margin:0 auto;padding:48px 48px 60px}
 .col{display:flex;flex-direction:column;min-width:0}
+/* the left and middle columns are split into three shared rows so every card edge lines up across the page:
+   row 1 = clock + calendar | heading + 4 cards,  row 2 = mood bars | intake chart,  row 3 = note box | poop chart.
+   The right column (Today's Log) spans all three rows, so all three columns end on the same line. */
+.col.left,.col.mid{display:contents}
+.grp{display:flex;flex-direction:column;min-width:0}
+.dash>.col>*{min-width:0}
+.gl{grid-column:1;grid-row:1}
+.gm{grid-column:2;grid-row:1}
+#bars{grid-column:1;grid-row:2}
+.chartcard.c1{grid-column:2;grid-row:2}
+#note{grid-column:1;grid-row:3}
+#pchart{grid-column:2;grid-row:3}
+.col.right{grid-column:3;grid-row:1/4}
 
 /* ---------- card entrance (slide in from the nearest edge, staggered) ---------- */
 @keyframes cardIn{from{opacity:0;translate:var(--dx,0) var(--dy,0)}}
@@ -79,12 +92,12 @@ h1,h2,h3{margin:0}
 .tile .lab.l{left:14px}.tile .lab.r{right:12px}
 
 /* ---------- calendar ---------- */
-.cal{border-radius:var(--r);background:linear-gradient(180deg,var(--softpink),var(--softpink2));margin-bottom:34px}
+.cal{border-radius:var(--r);background:linear-gradient(180deg,var(--softpink),var(--softpink2));display:flex;flex-direction:column;flex:1}
 .cal-head{display:flex;align-items:center;justify-content:space-between;height:44px;padding:0 10px;background:var(--softpink);color:var(--ink);border-bottom:1px solid rgba(91,42,38,.12);border-radius:var(--r) var(--r) 0 0}
 .ctitle{flex:1;border:0;background:none;color:var(--ink);font:700 17px var(--font);padding:8px}
 .cn{width:28px;height:28px;border:0;border-radius:50%;background:transparent;color:var(--ink);font:700 22px/1 var(--font);display:grid;place-items:center;transition:background .2s}
 .cn:hover{background:rgba(255,255,255,.28)}
-.cal-body-wrap{padding:12px 12px 14px}
+.cal-body-wrap{padding:12px 12px 14px;flex:1;display:flex;flex-direction:column;justify-content:center}
 .wd{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font:700 14px var(--font);color:var(--ink);padding:6px 0 4px}
 .cal-body{overflow:hidden;transition:height .34s cubic-bezier(.22,1,.36,1)}
 .cal-body .grid{display:grid;grid-template-columns:repeat(7,1fr);row-gap:2px}
@@ -97,7 +110,7 @@ h1,h2,h3{margin:0}
 
 /* ---------- progress bars ---------- */
 /* the mood bars now sit on their own soft pink card, so they stay readable on the orange background */
-.bars{display:flex;flex-direction:column;gap:16px;padding:16px 12px;border-radius:var(--r);background:var(--pinkgrad);box-shadow:0 12px 26px rgba(40,40,70,.07)}
+.bars{display:flex;flex-direction:column;justify-content:space-evenly;gap:16px;padding:16px 12px;border-radius:var(--r);background:var(--pinkgrad);box-shadow:0 12px 26px rgba(40,40,70,.07)}
 .bar{display:flex;align-items:center;gap:14px}
 .track{flex:none;width:170px;height:34px;padding:4px;border:3px solid var(--barline);border-radius:12px;background:#FFF6F3;box-shadow:inset 0 2px 5px rgba(91,42,38,.08)}
 .fill{height:100%;min-width:8px;border-radius:8px;background:linear-gradient(90deg,var(--bar),#FF9DB1);box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 1px 4px rgba(255,120,150,.28);transition:width .8s cubic-bezier(.22,1,.36,1)}
@@ -110,9 +123,9 @@ h1,h2,h3{margin:0}
 .bar.mood .track:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 /* ---------- note box under the mood bars ---------- */
-.note{position:relative;margin-top:30px;padding:18px 16px 14px;border-radius:var(--r);background:var(--pinkgrad);box-shadow:0 12px 26px rgba(40,40,70,.07)}
+.note{position:relative;display:flex;flex-direction:column;padding:18px 16px 14px;border-radius:var(--r);background:var(--pinkgrad);box-shadow:0 12px 26px rgba(40,40,70,.07)}
 .note label{display:block;margin:0 2px 10px;font:700 17px/1.25 var(--font);color:var(--ink)}
-.note textarea{display:block;width:100%;min-height:96px;margin:0;padding:10px 12px;resize:vertical;border:1px solid rgba(91,42,38,.22);border-radius:10px;background:#fffaf8;color:var(--ink);font:400 15px/1.4 var(--font)}
+.note textarea{display:block;width:100%;flex:1;min-height:96px;margin:0;padding:10px 12px;resize:vertical;border:1px solid rgba(91,42,38,.22);border-radius:10px;background:#fffaf8;color:var(--ink);font:400 15px/1.4 var(--font)}
 .note textarea::placeholder{color:#94675d}
 .note textarea:focus-visible,.note .qbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .nfoot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}
@@ -123,8 +136,8 @@ h1,h2,h3{margin:0}
 .band{display:flex;align-items:center;justify-content:space-between;gap:16px;height:62px;padding:0 22px;border-radius:var(--r);background:var(--pinkgrad);margin-bottom:34px}
 .band h1{font:700 32px var(--font);color:var(--ink)}
 .band span{font:500 14px var(--font);color:var(--ink2);text-align:right}
-.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-.coin{position:relative;border:0;text-align:left;border-radius:var(--r);padding:16px 20px;height:176px;box-shadow:0 12px 26px rgba(40,40,70,.07);display:flex;flex-direction:column;justify-content:space-between;min-width:0}
+.cards{display:grid;grid-template-columns:repeat(2,1fr);grid-auto-rows:minmax(176px,1fr);gap:14px;flex:1}
+.coin{position:relative;border:0;text-align:left;border-radius:var(--r);padding:16px 20px;height:auto;min-height:176px;box-shadow:0 12px 26px rgba(40,40,70,.07);display:flex;flex-direction:column;justify-content:space-between;min-width:0}
 .coin.pink{background:linear-gradient(135deg,#ffd6dc,#ffe4e7)}
 .coin.blue,.coin.peach{background:linear-gradient(135deg,var(--softpink),var(--softpink2))}
 .coin.mint{background:linear-gradient(135deg,#c6efdf,#d9f6ec)}
@@ -141,7 +154,7 @@ h1,h2,h3{margin:0}
 .cv span{font:400 13px var(--font);color:var(--ink2);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 
 /* ---------- chart card ---------- */
-.chartcard{margin-top:20px;padding:22px 26px 14px;border:1px solid rgba(91,42,38,.1);border-radius:var(--r);background:var(--pinkgrad);box-shadow:0 22px 50px rgba(91,42,38,.1)}
+.chartcard{display:flex;flex-direction:column;padding:22px 26px 14px;border:1px solid rgba(91,42,38,.1);border-radius:var(--r);background:var(--pinkgrad);box-shadow:0 22px 50px rgba(91,42,38,.1)}
 .chead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
 .csum{display:flex;align-items:center;gap:26px;padding:14px 20px;border:1px solid rgba(91,42,38,.1);border-radius:16px;background:var(--softpink3);box-shadow:0 6px 16px rgba(91,42,38,.08)}
 .cs-l{display:flex;flex-direction:column}
@@ -154,8 +167,8 @@ h1,h2,h3{margin:0}
 .tabs button{border:0;background:none;padding:7px 13px;border-radius:10px;font:500 17px var(--font);color:var(--ink2);transition:background .2s,color .2s}
 .tabs button:hover{color:var(--ink)}
 .tabs button.on{background:rgba(255,255,255,.6);color:var(--ink)}
-.plot{position:relative;height:260px;margin-top:6px}
-.plot svg{display:block;width:100%;height:100%;overflow:visible}
+.plot{position:relative;flex:1;min-height:210px;margin-top:6px}
+.plot svg{position:absolute;left:0;top:0;display:block;width:100%;height:100%;overflow:visible}
 .plot .gl{stroke:rgba(91,42,38,.14);stroke-width:1}
 .plot .yl,.plot .xl{font:400 14px var(--font);fill:var(--ink2)}
 .plot .line{fill:none;stroke:var(--ink);stroke-width:3;stroke-linejoin:round;stroke-linecap:round}
@@ -174,12 +187,12 @@ h1,h2,h3{margin:0}
 /* ---------- right column ---------- */
 
 /* ---------- Today's Log: water + breakfast / lunch / dinner + snack ---------- */
-.qwrap{padding:28px 18px 18px;border-radius:var(--r);background:var(--pinkgrad)}
+.qwrap{flex:1;display:flex;flex-direction:column;padding:28px 18px 18px;border-radius:var(--r);background:var(--pinkgrad)}
 .qwrap h2{font:700 30px var(--font);color:var(--ink);padding:0 4px 16px;border-bottom:1px solid rgba(91,42,38,.18);margin-bottom:10px}
 .qdate{display:block;margin:0 4px 14px;font:400 13px var(--font);color:var(--ink2)}
-.qbox{padding:0}
-#qlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
-.qc{padding:14px 14px 14px;border-radius:14px;background:var(--softpink3);box-shadow:0 6px 16px rgba(91,42,38,.1)}
+.qbox{padding:0;flex:1;display:flex;flex-direction:column}
+#qlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;flex:1}
+.qc{display:flex;flex-direction:column;justify-content:center;flex:1 1 auto;padding:14px 14px 14px;border-radius:14px;background:var(--softpink3);box-shadow:0 6px 16px rgba(91,42,38,.1)}
 .qh{display:flex;align-items:center;gap:10px;font:700 17px/1.2 var(--font);color:var(--ink);margin:0}
 label.qh{cursor:pointer}
 .qh b{font:inherit}
@@ -189,7 +202,7 @@ label.qh{cursor:pointer}
 .qc input[type=checkbox]:checked{background:var(--ink);scale:1.08}
 .qc input[type=checkbox]:checked::after{content:"";width:6px;height:12px;margin-top:-2px;border:solid #fff;border-width:0 3px 3px 0;transform:rotate(45deg)}
 .qc input[type=checkbox]:focus-visible,.qc input[type=text]:focus-visible,.qc input[type=number]:focus-visible,.qbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.qc input[type=text],.qc input[type=number]{display:block;width:100%;min-width:0;margin:0;padding:10px 12px;border:1px solid rgba(91,42,38,.22);border-radius:10px;background:#fffaf8;color:var(--ink);font:400 15px var(--font)}
+.qc input[type=text],.qc input[type=number]{display:block;width:100%;min-width:0;margin:0;padding:13px 14px;border:1px solid rgba(91,42,38,.22);border-radius:10px;background:#fffaf8;color:var(--ink);font:400 15px var(--font)}
 .qc input::placeholder{color:#94675d}
 .qrow{display:flex;gap:8px;margin-top:10px}
 .fx{display:block;position:relative;margin-top:10px}
@@ -202,14 +215,17 @@ label.qh{cursor:pointer}
 #toast.on{translate:-50% 0;opacity:1}
 
 /* ---------- smaller screens ---------- */
-@media(max-width:1280px){.dash{grid-template-columns:280px minmax(0,1fr);padding:40px 40px 60px}.col.right{grid-column:1/-1}#qlist{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}}
+@media(max-width:1280px){.dash{grid-template-columns:280px minmax(0,1fr);padding:40px 40px 60px}.col.right{grid-column:1/-1;grid-row:4}#qlist{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}}
 @media(max-width:900px){
   .dash{grid-template-columns:1fr;padding:28px 18px 60px}
+  .gl,.gm,#bars,.chartcard.c1,#note,#pchart,.col.right{grid-column:1;grid-row:auto}
+  .gl{order:1}#bars{order:2}#note{order:3}.gm{order:4}.chartcard.c1{order:5}#pchart{order:6}.col.right{order:7}
+  .cards{grid-auto-rows:minmax(150px,1fr)}
   #qlist{display:flex}
   .cards{grid-template-columns:1fr 1fr}
-  .chartcard{padding:16px 14px 10px}.plot{height:210px}
+  .chartcard{padding:16px 14px 10px}.plot{min-height:210px}
   .band h1{font-size:24px}.band span{font-size:12px}.cs-r strong{font-size:24px}.csum{gap:16px;padding:12px 14px}
-  .coin{height:150px;padding:14px 14px}.cv strong{font-size:26px}
+  .coin{min-height:150px;padding:14px 14px}.cv strong{font-size:26px}
   .tile{height:130px;font-size:58px;line-height:130px}.tile .half span{height:130px;line-height:130px}
 }
 @media(prefers-reduced-motion:reduce){
@@ -224,7 +240,7 @@ label.qh{cursor:pointer}
 /* second row of the cards grid: Poop card (left) + Quote card (right), each the same width as the Water / Food cards */
 .cards{grid-template-columns:1fr 1fr}
 
-.pcard{position:relative;display:flex;flex-direction:column;justify-content:space-between;min-width:0;height:176px;padding:16px 16px 16px 20px;border-radius:var(--r);background:linear-gradient(135deg,var(--softpink),var(--softpink2));box-shadow:0 12px 26px rgba(40,40,70,.07)}
+.pcard{position:relative;display:flex;flex-direction:column;justify-content:space-between;min-width:0;height:auto;min-height:176px;padding:16px 16px 16px 20px;border-radius:var(--r);background:linear-gradient(135deg,var(--softpink),var(--softpink2));box-shadow:0 12px 26px rgba(40,40,70,.07)}
 .ptop{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;min-width:0}
 .pslot{flex:none;width:104px;height:92px;margin-top:-4px;display:grid;place-items:center}
 .pslot img{display:block;max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none}
@@ -237,7 +253,7 @@ label.qh{cursor:pointer}
 .pcheck input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 /* ---------- Quote card: no title, just the quote - the ONLY place the geometric sans-serif is used ---------- */
-.quotecard{position:relative;display:flex;align-items:center;min-width:0;height:176px;padding:16px 20px;border-radius:var(--r);background:var(--pinkgrad);box-shadow:0 12px 26px rgba(40,40,70,.07);overflow:hidden}
+.quotecard{position:relative;display:flex;align-items:center;min-width:0;height:auto;min-height:176px;padding:16px 20px;border-radius:var(--r);background:var(--pinkgrad);box-shadow:0 12px 26px rgba(40,40,70,.07);overflow:hidden}
 .quotetext{margin:0;width:100%;max-height:100%;overflow-y:auto;scrollbar-width:none;
   font-family:var(--geo);font-weight:500;font-size:var(--qs,18px);line-height:1.35;letter-spacing:-.1px;
   color:var(--ink);text-wrap:pretty;overflow-wrap:anywhere}
@@ -258,7 +274,7 @@ label.qh{cursor:pointer}
 
 /* phones: the two half-width cards get a little tighter so nothing is squeezed */
 @media(max-width:900px){
-  .pcard,.quotecard{height:150px}
+  .pcard,.quotecard{min-height:150px}
   .pcard{padding:14px 12px 14px 14px}
   .pslot{width:72px;height:64px}
   .pcheck{font-size:13px;gap:8px}
