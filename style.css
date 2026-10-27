@@ -34,19 +34,15 @@
   --r:22px;               /* one corner radius for every card */
   --cow:96px;             /* height of the cow sitting on the top-right edge of the Today's Log card (96px = the heading band + its gap, so the card lines up with the Water / Food cards) */
   --cr:26px;              /* how far the cow sits in from the card's right edge */
-  --bgfallback:#f4691f;   /* orange shown behind everything until the background video has loaded (or if it can't play) */
+  --bg:#E35336;           /* page background colour */
 }
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
-body{background:var(--bgfallback);color:var(--ink);font:15px/1.4 var(--font);overflow-x:hidden}
+body{background:var(--bg);color:var(--ink);font:15px/1.4 var(--font);overflow-x:hidden}
 button,input,textarea,select{font-family:var(--font)}
 button{font:inherit;color:inherit;cursor:pointer}
 [hidden]{display:none!important}
 h1,h2,h3{margin:0}
-
-/* ---------- looping background video (behind every card and chart) ---------- */
-.bgvid{position:fixed;inset:0;z-index:0;width:100%;height:100%;object-fit:cover;pointer-events:none;background:var(--bgfallback)}
-#pages{position:relative;z-index:1}              /* all the cards sit above the video */
 
 /* ---------- page layout ---------- */
 .page{display:none;min-height:100vh}
@@ -98,7 +94,7 @@ h1,h2,h3{margin:0}
 @keyframes dpop{0%{scale:.4;opacity:0}60%{scale:1.14;opacity:1}100%{scale:1}}
 
 /* ---------- progress bars ---------- */
-/* the mood bars now sit on their own soft pink card so they stay readable on top of the video */
+/* the mood bars now sit on their own soft pink card, so they stay readable on the orange background */
 .bars{display:flex;flex-direction:column;gap:16px;padding:16px 12px;border-radius:var(--r);background:var(--pinkgrad);box-shadow:0 12px 26px rgba(40,40,70,.07)}
 .bar{display:flex;align-items:center;gap:14px}
 .track{flex:none;width:170px;height:34px;padding:4px;border:3px solid var(--barline);border-radius:10px;background:#fff}
