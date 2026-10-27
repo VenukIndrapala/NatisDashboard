@@ -516,7 +516,6 @@ function fly(sx, sy, w, h) {
   return new Promise(done => {
     pdraw(false);
     const r = $('#pplot').getBoundingClientRect(), ex = r.left + scrollX + PS.X(PS.pts.length - 1), ey = r.top + scrollY + PS.H - PS.M.b;
-    const lo = ey - innerHeight + 130; if (scrollY < lo) scrollTo({ top: lo, behavior: 'smooth' });   // make sure the landing spot is on screen
     const el = document.createElement('div'); el.className = 'pfly'; el.style.width = w + 'px'; el.style.height = h + 'px';
     el.innerHTML = `<img src="${$('#phero').src}" alt="">`;
     el.style.offsetPath = `path("${flyPath(sx, sy, ex, ey)}")`; document.body.appendChild(el);
