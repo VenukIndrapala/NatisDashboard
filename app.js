@@ -207,6 +207,28 @@ $('#bars').addEventListener('keydown', e => {
 });
 
 /* =====================================================================
+   NOTE BOX ("Anything She Wants To Say Or Talk About?") - each entry is logged as a new row on the "Notes" tab
+   ===================================================================== */
+const LS_NOTES = 'wf_demo_notes';
+async function saveNote() {
+  const el = $('#noteIn'), v = el.value.trim().slice(0, 1000);
+  if (!v) return toast('Type Something First');
+  el.value = '';
+  try {
+    if (API && !demo) {
+      const r = await post({ action: 'note', date: today, text: v }); if (r.error) throw new Error(r.error);
+      if (r.note !== true) throw new Error('outdated');                  // an old Code.gs would say "ok" without saving
+    } else { const l = lsGet(LS_NOTES, []); l.push({ date: today, text: v }); lsSet(LS_NOTES, l); }
+    toast('Logged · Note · today');
+  } catch (err) {
+    if (!el.value) el.value = v;                                          // keep what she wrote so nothing is lost
+    toast(/outdated/.test(err.message) ? 'Redeploy The New Code.gs' : 'Not Saved - Check Connection');
+  }
+}
+$('#noteBtn').addEventListener('click', saveNote);
+$('#noteIn').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); saveNote(); } });
+
+/* =====================================================================
    CALENDAR  (animation modelled on the reference video)
    - click a day: green marker pops in; a second marker follows the cursor
    - click again: range is set (click the same day twice = single day)
