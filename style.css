@@ -1,9 +1,11 @@
-/* Drop Line - put the font file in a "fonts" folder next to this file and name it DropLine.otf
-   (if your file has another name, change it in the url() below) */
+/* Dobidoo - put the font file in the "fonts" folder next to this file.
+   File names are case-sensitive on GitHub Pages. Keep only the formats you actually have;
+   missing ones are skipped automatically. */
 @font-face{
-  font-family:'Drop Line';
-  src:local('Drop Line'),local('DropLine'),
-      url('fonts/DropLine.otf') format('opentype');
+  font-family:'Dobidoo';
+  src:url('fonts/Dobidoo.woff2') format('woff2'),
+      url('fonts/Dobidoo.ttf') format('truetype'),
+      url('fonts/Dobidoo.otf') format('opentype');
   font-weight:100 900;font-style:normal;font-display:swap;
 }
 /* Poppins (geometric sans-serif) - used ONLY by the quote card.
@@ -22,7 +24,7 @@
   --accent:#C9563F;         /* selected-day marker */
   --softpink3:#FEE6DE;      /* light tint for small cards inside the pink panels */
   --pinkgrad:linear-gradient(135deg,var(--softpink),var(--softpink2));--mu:#9a9db0;--ln:#ececf1;
-  --font:'Drop Line','Trebuchet MS','Segoe UI',system-ui,-apple-system,sans-serif;
+  --font:'Dobidoo','Trebuchet MS','Segoe UI',system-ui,-apple-system,sans-serif;
   --geo:'Poppins','Montserrat','Century Gothic','Avenir Next','Futura','Trebuchet MS',sans-serif;   /* geometric sans-serif, quote card only */
   --mono:var(--font);
   --sans:var(--font);
