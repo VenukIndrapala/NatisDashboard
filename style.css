@@ -32,6 +32,7 @@
   --softpink:#FAB6A2;      /* Clairtone 8083-8 Soft Pink */
   --softpink2:#FCCDBF;     /* lighter tint of it, for the card's soft gradient */
   --r:22px;               /* one corner radius for every card */
+  --cow:96px;             /* height of the cow on the Today's Log card (96px = the heading band + its gap, so the card lines up with the Water / Food cards) */
 }
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
@@ -260,4 +261,22 @@ label.qh{cursor:pointer}
   .quotetext{font-size:calc(var(--qs,18px)*.78)}
 }
 
-@media(prefers-reduced-motion:reduce){.pfly img,.psplash i{animation:none}}
+/* ---------- Cow sitting on the top-right edge of the Today's Log card ---------- */
+/* the right column is pushed down by the cow's height, so the cow stands in that space and the card starts below it */
+.col.right{padding-top:var(--cow)}
+.cow{position:absolute;right:26px;bottom:100%;z-index:2;display:block;height:var(--cow);width:auto;
+  pointer-events:none;user-select:none;-webkit-user-drag:none;
+  transform-origin:50% 100%;backface-visibility:hidden;will-change:transform;
+  animation:cowIdle 5.6s cubic-bezier(.42,0,.25,1) infinite}
+/* the original calm breathing sway, a little stronger because the cow is small here; it pivots on its hooves so it stays planted on the edge */
+@keyframes cowIdle{
+  0%,100%{transform:translate3d(0,0,0) rotate(0deg) scale(1)}
+  18%{transform:translate3d(0,-.3px,0) rotate(-.4deg) scale(1.003)}
+  36%{transform:translate3d(0,-1px,0) rotate(-.9deg) scale(1.01)}
+  52%{transform:translate3d(0,-.4px,0) rotate(.3deg) scale(1.004)}
+  70%{transform:translate3d(0,-.15px,0) rotate(.7deg) scale(1.002)}
+  86%{transform:translate3d(0,-.3px,0) rotate(-.15deg) scale(1.002)}
+}
+@media(max-width:900px){:root{--cow:80px}.cow{right:20px}}
+
+@media(prefers-reduced-motion:reduce){.pfly img,.psplash i,.cow{animation:none}}
