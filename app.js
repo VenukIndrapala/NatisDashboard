@@ -405,3 +405,179 @@ buildClock(); buildBars(); buildCards(); buildTabs(); renderCal(0); buildQuick()
 tickClock(); setInterval(tickClock, 1000);
 if (API && loadCache()) { fromCache = true; renderAll(true); }   // show the last saved numbers straight away, then update from the sheet
 load(true); if (API) setInterval(() => load(false), REFRESH_MS);
+
+/* =====================================================================
+   POOP CARD + FLOAT + TREND CHART  (runs after the dashboard above has started)
+   ===================================================================== */
+const LS_POOP = 'wf_poop';
+const PT = [['1W', 7], ['2W', 14], ['1M', 30], ['3M', 91], ['1Y', 365]];
+let POOP = lsGet(LS_POOP, {});                 // { '2026-10-26': true }
+let ptab = '1W', PS = null, flying = false, shownDay = today;
+const pv = k => (POOP[k] && !(flying && k === today)) ? 1 : 0;   // today only counts once the poop has landed
+const psum = ks => ks.reduce((s, k) => s + pv(k), 0);
+const dayWord = n => Math.abs(n) === 1 ? 'day' : 'days';
+
+/* ---------------- build ---------------- */
+function buildPoop() {
+  $('#cards').insertAdjacentHTML('beforeend',
+    `<div class="pcard reveal lift" id="pcard" style="--dy:-90px;--i:3">
+       <div class="ptop"><div class="cname"><b>POOP</b><small id="psub">Daily Check</small></div>
+         <div class="pslot"><img id="phero" src="poop.png" alt="Poop character" draggable="false"></div></div>
+       <label class="pcheck"><input type="checkbox" id="pbox"><span>Did You Poop Today?</span></label>
+     </div>`);
+  $('.chartcard').insertAdjacentHTML('afterend',
+    `<div class="chartcard reveal" id="pchart" style="--dy:90px;--i:7">
+       <div class="chead">
+         <div class="csum"><div class="cs-l"><b>POOP</b><small>Days Pooped</small></div>
+           <div class="cs-r"><strong id="ps-val"></strong><em id="ps-delta"></em></div></div>
+         <div class="tabs" id="ptabs" role="tablist"></div>
+       </div>
+       <div class="plot" id="pplot"><svg id="psvg" role="img" aria-label="Poop trend chart"></svg><div class="tip" id="ptip" hidden></div></div>
+     </div>`);
+  $('#ptabs').innerHTML = PT.map(t => `<button type="button" role="tab" data-t="${t[0]}" data-pop class="${t[0] === ptab ? 'on' : ''}">${t[0]}</button>`).join('');
+}
+function prender() {
+  const done = !!POOP[today];
+  const box = $('#pbox'); box.checked = done; box.disabled = done || flying;
+  $('#psub').textContent = done ? 'Done For Today' : 'Daily Check';
+  if (!flying) $('#phero').classList.toggle('gone', done);
+}
+
+/* ---------------- chart ---------------- */
+function pSeries() {
+  const n = PT.find(t => t[0] === ptab)[1], pts = [];
+  if (ptab === '1Y') {
+    const b = toDate(today);
+    for (let i = 11; i >= 0; i--) {
+      const dt = new Date(Date.UTC(b.getUTCFullYear(), b.getUTCMonth() - i, 1)), y = dt.getUTCFullYear(), mo = dt.getUTCMonth();
+      const dim = new Date(Date.UTC(y, mo + 1, 0)).getUTCDate();
+      pts.push({ v: psum(Array.from({ length: dim }, (_, j) => toKey(new Date(Date.UTC(y, mo, j + 1))))), label: MON[mo], full: MON[mo] + ' ' + y + ' · days pooped' });
+    }
+  } else if (ptab === '3M') {
+    for (let j = 12; j >= 0; j--) { const e = addDays(today, -7 * j), ks = keysBack(e, 7); pts.push({ v: psum(ks), label: short(ks[0]), full: short(ks[0]) + ' – ' + short(e) + ' · days pooped' }); }
+  } else {
+    keysBack(today, n).forEach(k => pts.push({ v: pv(k), label: ptab === '1W' ? DOW[toDate(k).getUTCDay()] : short(k), full: fullDate(k) }));
+  }
+  return { pts, daily: ptab !== '3M' && ptab !== '1Y', total: psum(keysBack(today, n)), prev: psum(keysBack(addDays(today, -n), n)) };
+}
+function pdraw(anim, lt) {                       // lt (0..1) = how far today's newest point has risen from the axis
+  const box = $('#pplot'), W = box.clientWidth, H = box.clientHeight; if (!W) return;
+  const M = { l: 66, r: 18, t: 34, b: 38 }, pw = W - M.l - M.r, ph = H - M.t - M.b;
+  PS = pSeries(); const n = PS.pts.length, d = PS.daily;
+  const top0 = Math.max(...PS.pts.map(p => p.v), 1), step = d ? 1 : Math.max(1, Math.ceil(niceStep(top0))), top = d ? 1 : Math.ceil(top0 / step) * step;
+  const X = i => M.l + (n === 1 ? pw / 2 : 12 + (pw - 24) * i / (n - 1)), Y = v => M.t + ph - (v / top) * ph;
+  PS.vals = PS.pts.map((p, i) => i === n - 1 && lt !== undefined ? p.v - 1 + lt : p.v);
+  Object.assign(PS, { X, Y, M, W, H, pw });
+  let g = '';
+  for (let v = 0; v <= top + 1e-9; v += step) g += `<line class="gl" x1="${M.l}" x2="${W - M.r}" y1="${Y(v)}" y2="${Y(v)}"/><text class="yl" x="${M.l - 12}" y="${Y(v) + 5}" text-anchor="end">${d ? (v ? 'Yes' : 'No') : fmt(v)}</text>`;
+  const every = Math.ceil(n / Math.max(2, Math.floor(pw / 62)));
+  PS.pts.forEach((p, i) => { if (i % every === 0 || i === n - 1 && (n - 1) % every === 0) g += `<text class="xl" x="${X(i)}" y="${H - 10}" text-anchor="middle">${esc(p.label)}</text>`; });
+  g += `<path class="line${anim && !reduce ? ' draw' : ''}" pathLength="1" d="${PS.vals.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1)).join(' ')}"/>`;
+  g += `<g id="phv" hidden><line class="vl" id="phvl"/><circle class="dot" id="phvd" r="6.5"/></g>`;
+  const svg = $('#psvg'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.innerHTML = g;
+  const t = PS.total, dl = t - PS.prev, pct = PS.prev ? Math.round(dl / PS.prev * 100) : 0;
+  $('#ps-val').textContent = t + ' ' + dayWord(t);
+  const de = $('#ps-delta'); de.textContent = PS.prev ? signed(dl, dayWord(dl)) + ' (' + (pct >= 0 ? '+' : '') + pct + '%)' : 'no earlier data'; de.classList.toggle('down', dl < 0);
+  phover(n - 1);
+}
+function phover(i) {
+  if (!PS) return; const p = PS.pts[i], x = PS.X(i), y = PS.Y(PS.vals[i]), d = PS.daily;
+  $('#phv').removeAttribute('hidden');
+  const l = $('#phvl'); l.setAttribute('x1', x); l.setAttribute('x2', x); l.setAttribute('y1', y); l.setAttribute('y2', PS.H - PS.M.b);
+  const c = $('#phvd'); c.setAttribute('cx', x); c.setAttribute('cy', y);
+  const diff = i > 0 ? p.v - PS.pts[i - 1].v : null, tip = $('#ptip');
+  tip.innerHTML = `<small>${esc(p.full)}</small><b>${d ? (p.v ? 'Yes' : 'No') : p.v + ' ' + dayWord(p.v)}</b>` + (!d && diff !== null ? `<em class="${diff < 0 ? 'down' : ''}">${signed(diff, dayWord(diff))}</em>` : '');
+  tip.hidden = false;
+  tip.style.left = Math.min(Math.max(x, 80), PS.W - 80) + 'px'; tip.style.top = y + 'px';
+  tip.style.translate = y < 120 ? '-50% 18px' : '-50% calc(-100% - 16px)';
+}
+function animLast() {                            // today's point rises from the axis with a little bounce
+  if (reduce) return pdraw(false);
+  const t0 = performance.now(), c1 = 1.70158, c3 = c1 + 1;
+  (function f(t) {
+    const p = Math.min(1, (t - t0) / 750), e = 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2);
+    p < 1 ? (pdraw(false, e), requestAnimationFrame(f)) : pdraw(false);
+  })(t0);
+}
+
+/* ---------------- the float (fish offset-path movement) ---------------- */
+function flyPath(sx, sy, ex, ey) {               // wavy S-curve from the card down to the axis (smooth quadratic chain, like the fish's swim path)
+  const n = 4, dx = ex - sx, dy = ey - sy, len = Math.hypot(dx, dy) || 1, px = -dy / len, py = dx / len, amp = Math.min(120, len / 4);
+  const pt = i => [sx + dx * i / n, sy + dy * i / n], f = v => v.toFixed(1);
+  let d = `M${f(sx)} ${f(sy)} Q${f(sx + dx * .5 / n + px * amp)} ${f(sy + dy * .5 / n + py * amp)} ${f(pt(1)[0])} ${f(pt(1)[1])}`;
+  for (let i = 2; i <= n; i++) d += ` T${f(pt(i)[0])} ${f(pt(i)[1])}`;
+  return d;
+}
+function splash(x, y) {
+  const s = document.createElement('div'); s.className = 'psplash'; s.style.left = x + 'px'; s.style.top = y + 'px';
+  s.innerHTML = '<i></i><i></i><b></b><b></b><b></b><b></b><b></b>'; document.body.appendChild(s); setTimeout(() => s.remove(), 1100);
+}
+function fly(sx, sy, w, h) {
+  return new Promise(done => {
+    pdraw(false);
+    const r = $('#pplot').getBoundingClientRect(), ex = r.left + scrollX + PS.X(PS.pts.length - 1), ey = r.top + scrollY + PS.H - PS.M.b;
+    const lo = ey - innerHeight + 130; if (scrollY < lo) scrollTo({ top: lo, behavior: 'smooth' });   // make sure the landing spot is on screen
+    const el = document.createElement('div'); el.className = 'pfly'; el.style.width = w + 'px'; el.style.height = h + 'px';
+    el.innerHTML = `<img src="${$('#phero').src}" alt="">`;
+    el.style.offsetPath = `path("${flyPath(sx, sy, ex, ey)}")`; document.body.appendChild(el);
+    const dur = Math.max(2800, Math.min(4600, Math.hypot(ex - sx, ey - sy) * 4.5));
+    const a = el.animate([
+      { offsetDistance: '0%', opacity: 1, scale: 1 },
+      { offsetDistance: '100%', opacity: 1, scale: 1, offset: .92 },        // linear swim, as in the fish code
+      { offsetDistance: '100%', opacity: 0, scale: .2 }                      // shrinks into the splash
+    ], { duration: dur, easing: 'linear', fill: 'forwards' });
+    setTimeout(() => splash(ex, ey), dur * .9);
+    a.onfinish = () => { el.remove(); done(); };
+  });
+}
+
+/* ---------------- tick ---------------- */
+async function poopTick() {
+  const k = today; if (POOP[k] || flying) return;
+  const hero = $('#phero'), r = hero.getBoundingClientRect(), sx = r.left + scrollX + r.width / 2, sy = r.top + scrollY + r.height / 2;
+  POOP[k] = true; flying = true; prender(); hero.classList.add('gone');
+  const saved = (async () => {
+    try {
+      if (API && !demo) {
+        const j = await post({ action: 'poop', date: k, d: true });
+        if (j.error) throw new Error(j.error);
+        if (j.poop !== true) throw new Error('outdated');                  // an old Code.gs would say "ok" without saving
+      }
+      lsSet(LS_POOP, POOP); return '';
+    } catch (e) { return /outdated/.test(e.message) ? 'Redeploy The New Code.gs' : 'Not Saved - Check Connection'; }
+  })();
+  if (!reduce) await fly(sx, sy, r.width, r.height);
+  const err = await saved;
+  if (err) {                                                                // save failed: the poop comes back, nothing is logged
+    delete POOP[k]; flying = false; prender(); pdraw(false); toast(err);
+    hero.classList.add('pop'); setTimeout(() => hero.classList.remove('pop'), 500); return;
+  }
+  flying = false; prender(); toast('Logged · Poop · today'); animLast();
+}
+
+/* ---------------- loading from the sheet ---------------- */
+async function pload() {
+  if (!API || demo || flying) return;
+  try {
+    const d = await (await fetch(API + '?t=' + Date.now())).json();
+    if (d.error || !d.poop || flying) return;                              // no "poop" key = old Code.gs, keep what we have
+    POOP = d.poop; lsSet(LS_POOP, POOP); prender(); pdraw(false);
+  } catch (e) { console.warn(e); }
+}
+
+/* ---------------- start ---------------- */
+buildPoop(); prender(); pdraw(true);
+$('#pbox').addEventListener('change', e => { if (e.target.checked) poopTick(); else prender(); });
+$('#ptabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; ptab = b.dataset.t; $$('#ptabs button').forEach(x => x.classList.toggle('on', x === b)); pdraw(true); });
+$('#pplot').addEventListener('pointermove', e => {
+  if (!PS) return; const r = $('#pplot').getBoundingClientRect(), n = PS.pts.length; if (n < 2) return;
+  phover(Math.max(0, Math.min(n - 1, Math.round((e.clientX - r.left - PS.M.l - 12) / ((PS.pw - 24) / (n - 1))))));
+});
+$('#pplot').addEventListener('pointerleave', () => PS && phover(PS.pts.length - 1));
+new ResizeObserver(() => { if (!flying) pdraw(false); }).observe($('#pplot'));
+setInterval(() => {                              // new day: the box unlocks and the character comes back; the log and chart history stay
+  if (today === shownDay) return; shownDay = today;
+  prender(); pdraw(false);
+  const h = $('#phero'); h.classList.add('pop'); setTimeout(() => h.classList.remove('pop'), 500);
+}, 1000);
+pload(); if (API) setInterval(pload, REFRESH_MS);
