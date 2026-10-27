@@ -491,13 +491,11 @@ function phover(i) {
   tip.style.left = Math.min(Math.max(x, 80), PS.W - 80) + 'px'; tip.style.top = y + 'px';
   tip.style.translate = y < 120 ? '-50% 18px' : '-50% calc(-100% - 16px)';
 }
-function animLast() {                            // today's point rises from the axis with a little bounce
-  if (reduce) return pdraw(false);
-  const t0 = performance.now(), c1 = 1.70158, c3 = c1 + 1;
-  (function f(t) {
-    const p = Math.min(1, (t - t0) / 750), e = 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2);
-    p < 1 ? (pdraw(false, e), requestAnimationFrame(f)) : pdraw(false);
-  })(t0);
+function animLast() {                            // the poop has merged into the chart: the line draws in and today's point pops into place (nothing rises from the axis)
+  pdraw(true);
+  const c = $('#phvd'); if (!c || reduce) return;
+  c.style.transformBox = 'fill-box'; c.style.transformOrigin = 'center';
+  c.animate([{ scale: 0 }, { scale: 1.5, offset: .6 }, { scale: 1 }], { duration: 500, delay: 850, easing: 'ease-out', fill: 'both' });
 }
 
 /* ---------------- the float (fish offset-path movement) ---------------- */
@@ -510,7 +508,7 @@ function flyPath(sx, sy, ex, ey) {               // wavy S-curve from the card d
 }
 function splash(x, y) {
   const s = document.createElement('div'); s.className = 'psplash'; s.style.left = x + 'px'; s.style.top = y + 'px';
-  s.innerHTML = '<i></i><i></i><b></b><b></b><b></b><b></b><b></b>'; document.body.appendChild(s); setTimeout(() => s.remove(), 1100);
+  s.innerHTML = '<i></i><i></i>'; document.body.appendChild(s); setTimeout(() => s.remove(), 1100);
 }
 function fly(sx, sy, w, h) {
   return new Promise(done => {
@@ -522,10 +520,10 @@ function fly(sx, sy, w, h) {
     const dur = Math.max(2800, Math.min(4600, Math.hypot(ex - sx, ey - sy) * 4.5));
     const a = el.animate([
       { offsetDistance: '0%', opacity: 1, scale: 1 },
-      { offsetDistance: '100%', opacity: 1, scale: 1, offset: .92 },        // linear swim, as in the fish code
-      { offsetDistance: '100%', opacity: 0, scale: .2 }                      // shrinks into the splash
+      { offsetDistance: '100%', opacity: 1, scale: 1, offset: .86 },        // linear swim, as in the fish code
+      { offsetDistance: '100%', opacity: 0, scale: 0 }                       // sinks into the axis and vanishes (never flies back)
     ], { duration: dur, easing: 'linear', fill: 'forwards' });
-    setTimeout(() => splash(ex, ey), dur * .9);
+    setTimeout(() => splash(ex, ey), dur * .86);
     a.onfinish = () => { el.remove(); done(); };
   });
 }
