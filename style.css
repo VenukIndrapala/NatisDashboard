@@ -85,6 +85,12 @@ h1,h2,h3{margin:0}
 .track{flex:none;width:170px;height:34px;padding:4px;border:3px solid var(--barline);border-radius:10px;background:#fff}
 .fill{height:100%;min-width:6px;border-radius:5px;background:var(--bar);transition:width .8s cubic-bezier(.22,1,.36,1)}
 .bar span{font:400 15px var(--font);color:#b79bdc;white-space:nowrap}
+/* mood bars: same look, but draggable */
+.bars .bar.mood{display:grid;grid-template-columns:minmax(0,160px) 1fr;align-items:center;gap:14px}
+.bar.mood .track{width:auto;cursor:ew-resize;touch-action:none;user-select:none;-webkit-user-select:none}
+.bar.mood .fill{transition:width .3s cubic-bezier(.22,1,.36,1)}
+.bar.mood.drag .fill{transition:none}                                       /* follows the pointer exactly while dragging */
+.bar.mood .track:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 /* ---------- centre: heading band + water / food cards ---------- */
 .band{display:flex;align-items:center;justify-content:space-between;gap:16px;height:62px;padding:0 22px;border-radius:var(--r);background:var(--pinkgrad);margin-bottom:34px}
@@ -184,7 +190,7 @@ label.qh{cursor:pointer}
   .lift:hover,.tile:hover,.cal:hover,.band:hover,.chartcard:hover,.fx:hover,.qwrap:hover,.qc:hover{transform:none!important}
   .page.show .reveal,.d.sel,.d.pv,.plot .line.draw,.pop{animation:none}
   .plot .line.draw{stroke-dashoffset:0}
-  .cal-body,.fill,.tip{transition:none}
+  .cal-body,.fill,.tip,.bar.mood .fill{transition:none}
 }
 
 /* ---------- Poop card + trend chart (loads after style.css) ---------- */
