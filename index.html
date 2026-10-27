@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Water &amp; Food Tracker</title>
+<link rel="preload" as="image" href="cow.png">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -58,9 +59,10 @@
         </div>
       </div>
 
-      <!-- right column: Today's Log -->
+      <!-- right column: Today's Log (the cow sits on its top-right edge) -->
       <div class="col right">
         <div class="qwrap reveal" style="--dx:110px;--i:4">
+          <img class="cow" src="cow.png" width="80" height="96" alt="A seated orange Highland cow" draggable="false" decoding="async" onerror="this.style.display='none'">
           <h2>Today's Log</h2>
           <small class="qdate" id="qdate"></small>
           <div class="qbox"><ul id="qlist"></ul></div>
