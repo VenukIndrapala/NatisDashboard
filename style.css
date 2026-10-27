@@ -27,7 +27,7 @@
   --mono:var(--font);
   --sans:var(--font);
   --green:#3a7551;--green2:#7cc47f;--leaf:#a9d6a4;--leaf2:#eaf3e8;
-  --sky:#c5e3f1;--purple:#8d52a8;--lav:#f5f2f9;--rose:#c2347f;--blush:#f9edf1;--link:#c2345c;--bar:#d4b4f2;--barline:#cfa6ee;
+  --sky:#c5e3f1;--purple:#8d52a8;--lav:#f5f2f9;--rose:#c2347f;--blush:#f9edf1;--link:#c2345c;--bar:#FFC4D0;--barline:#FFDDE4;
   --blue:#5b9cf0;
   --softpink:#FAB6A2;      /* Clairtone 8083-8 Soft Pink */
   --softpink2:#FCCDBF;     /* lighter tint of it, for the card's soft gradient */
@@ -97,8 +97,8 @@ h1,h2,h3{margin:0}
 /* the mood bars now sit on their own soft pink card, so they stay readable on the orange background */
 .bars{display:flex;flex-direction:column;gap:16px;padding:16px 12px;border-radius:var(--r);background:var(--pinkgrad);box-shadow:0 12px 26px rgba(40,40,70,.07)}
 .bar{display:flex;align-items:center;gap:14px}
-.track{flex:none;width:170px;height:34px;padding:4px;border:3px solid var(--barline);border-radius:10px;background:#fff}
-.fill{height:100%;min-width:6px;border-radius:5px;background:var(--bar);transition:width .8s cubic-bezier(.22,1,.36,1)}
+.track{flex:none;width:170px;height:34px;padding:4px;border:3px solid var(--barline);border-radius:12px;background:#FFF6F3;box-shadow:inset 0 2px 5px rgba(91,42,38,.08)}
+.fill{height:100%;min-width:8px;border-radius:8px;background:linear-gradient(90deg,var(--bar),#FF9DB1);box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 1px 4px rgba(255,120,150,.28);transition:width .8s cubic-bezier(.22,1,.36,1)}
 .bar span{font:400 15px var(--font);color:var(--ink2);white-space:nowrap}
 /* mood bars: same look, but draggable */
 .bars .bar.mood{display:grid;grid-template-columns:minmax(0,150px) 1fr;align-items:center;gap:12px}
@@ -222,7 +222,7 @@ label.qh{cursor:pointer}
 /* second row of the cards grid: Poop card (left) + Quote card (right), each the same width as the Water / Food cards */
 .cards{grid-template-columns:1fr 1fr}
 
-.pcard{position:relative;display:flex;flex-direction:column;justify-content:space-between;min-width:0;height:176px;padding:16px 16px 16px 20px;border-radius:var(--r);background:linear-gradient(135deg,#ffd6dc,#ffe4e7);box-shadow:0 12px 26px rgba(40,40,70,.07)}
+.pcard{position:relative;display:flex;flex-direction:column;justify-content:space-between;min-width:0;height:176px;padding:16px 16px 16px 20px;border-radius:var(--r);background:linear-gradient(135deg,var(--softpink),var(--softpink2));box-shadow:0 12px 26px rgba(40,40,70,.07)}
 .ptop{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;min-width:0}
 .pslot{flex:none;width:104px;height:92px;margin-top:-4px;display:grid;place-items:center}
 .pslot img{display:block;max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none}
