@@ -401,9 +401,9 @@ function buildQuick() {
     `<li class="qc"><div class="qh">${svgI(WATER_ICON)}<b>Water</b></div>
        <div class="qrow"><span class="fx"><input type="number" id="waterIn" min="0" max="10000" step="any" inputmode="decimal" placeholder="Amount in ml" aria-label="Water in millilitres"></span><button type="button" class="qbtn" id="waterAdd" data-pop>Add</button></div></li>`
     + MEAL_DEFS.map(m => `<li class="qc"><label class="qh"><input type="checkbox" class="mt" data-meal="${m.id}"><b>${m.name} done</b></label>
-       <span class="fx"><input type="text" class="mx" data-meal="${m.id}" maxlength="120" placeholder="What did you eat? Press Enter" enterkeyhint="done" aria-label="${m.name}: what did you eat"></span></li>`).join('')
+       <span class="fx"><input type="text" class="mx" data-meal="${m.id}" maxlength="120" enterkeyhint="done" aria-label="${m.name}: what did you eat"></span></li>`).join('')
     + `<li class="qc"><div class="qh">${svgI(SNACK_ICON)}<b>Extra snack</b></div>
-       <span class="fx"><input type="text" class="mx" data-meal="snack" maxlength="120" placeholder="Had a snack? Press Enter" enterkeyhint="done" aria-label="Extra snack"></span></li>`;
+       <span class="fx"><input type="text" class="mx" data-meal="snack" maxlength="120" enterkeyhint="done" aria-label="Extra snack"></span></li>`;
 }
 function syncQuick() {                                // show the selected day's ticks in the cards (food text is write-only: it clears once logged)
   const e = getMeal(logDate());
@@ -492,9 +492,9 @@ const dayWord = n => Math.abs(n) === 1 ? 'day' : 'days';
 function buildPoop() {
   $('#cards').insertAdjacentHTML('beforeend',
     `<div class="pcard reveal lift" id="pcard" style="--dy:-90px;--i:3">
-       <div class="ptop"><div class="cname"><b>POOP</b><small id="psub">Daily Check</small></div>
+       <div class="ptop"><div class="cname"><b>Daily Poop Check</b><small id="psub">Daily Check</small></div>
          <div class="pslot"><img id="phero" src="poop.png" alt="Poop character" draggable="false"></div></div>
-       <label class="pcheck"><input type="checkbox" id="pbox"><span>Did You Poop Today?</span></label>
+       <label class="pcheck"><span>Did You Poop Today? Yes?</span><input type="checkbox" id="pbox"></label>
      </div>`);
   $('.chartcard').insertAdjacentHTML('afterend',
     `<div class="chartcard reveal" id="pchart" style="--dy:90px;--i:7">
