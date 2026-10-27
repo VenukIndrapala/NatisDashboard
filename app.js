@@ -102,6 +102,7 @@ async function load(first) {
     demo = false; DATA.days = d.days || {}; DATA.meals = d.meals || {};
     GOALS = { ...DEFAULT_GOALS, ...(d.goals || {}), food: DEFAULT_GOALS.food };
     if (d.mood && !moodBusy) { MOOD = d.mood; lsSet(LS_MOOD, MOOD); paintMood(); }   // today's mood bars from the sheet
+    if (typeof d.quote === 'string') setQuote(d.quote);                              // today's quote from the "Quote" tab (no "quote" key = old Code.gs, keep what we have)
     saveCache(); renderAll(first && !fromCache);
   } catch (e) {
     console.warn(e);
@@ -632,8 +633,33 @@ async function pload() {
   } catch (e) { console.warn(e); }
 }
 
+/* =====================================================================
+   QUOTE CARD  (sits right next to the Poop card - no title, only the quote)
+   - the quote is typed by whoever manages the sheet, on the "Quote" tab (Date | Quote)
+   - Code.gs sends today's quote (or the latest earlier one) with the data the dashboard already reads every minute,
+     so a new day's quote appears by itself - no extra request needed
+   - the card's text uses the geometric sans-serif font (see --geo in style.css); long quotes shrink a little to fit
+   ===================================================================== */
+const LS_QUOTE = 'wf_quote';
+const DEMO_QUOTE = 'Small steps every day add up to big things.';
+const cleanQuote = t => String(t || '').replace(/\s+/g, ' ').trim().replace(/^[“”"]+|[“”"]+$/g, '').trim().slice(0, 200);   // the card adds its own quote marks
+let QUOTE = cleanQuote(lsGet(LS_QUOTE, ''));                               // last quote seen on this device, shown instantly on refresh
+function buildQuote() {
+  $('#cards').insertAdjacentHTML('beforeend',
+    `<div class="quotecard reveal lift" id="quotecard" style="--dy:-90px;--i:4"><p class="quotetext" id="quotetext"></p></div>`);
+  if (!API && !QUOTE) QUOTE = DEMO_QUOTE;                                  // demo mode: show a sample
+  paintQuote();
+}
+function paintQuote() {
+  const el = $('#quotetext'); if (!el) return;
+  const n = QUOTE.length;
+  el.textContent = QUOTE; el.classList.toggle('has', n > 0);
+  el.style.setProperty('--qs', (n <= 50 ? 22 : n <= 90 ? 19 : n <= 140 ? 17 : n <= 180 ? 15 : 14) + 'px');
+}
+function setQuote(t) { QUOTE = cleanQuote(t); lsSet(LS_QUOTE, QUOTE); paintQuote(); }
+
 /* ---------------- start ---------------- */
-buildPoop(); prender(); pdraw(true);
+buildPoop(); buildQuote(); prender(); pdraw(true);
 $('#pbox').addEventListener('change', e => { if (e.target.checked) poopTick(); else prender(); });
 $('#ptabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; ptab = b.dataset.t; $$('#ptabs button').forEach(x => x.classList.toggle('on', x === b)); pdraw(true); });
 $('#pplot').addEventListener('pointermove', e => {
