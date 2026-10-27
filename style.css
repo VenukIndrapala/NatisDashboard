@@ -121,7 +121,7 @@ h1,h2,h3{margin:0}
 .tabs button{border:0;background:none;padding:7px 13px;border-radius:10px;font:500 17px var(--font);color:var(--ink2);transition:background .2s,color .2s}
 .tabs button:hover{color:var(--ink)}
 .tabs button.on{background:rgba(255,255,255,.6);color:var(--ink)}
-.plot{position:relative;height:380px;margin-top:6px}
+.plot{position:relative;height:260px;margin-top:6px}
 .plot svg{display:block;width:100%;height:100%;overflow:visible}
 .plot .gl{stroke:rgba(91,42,38,.14);stroke-width:1}
 .plot .yl,.plot .xl{font:400 14px var(--font);fill:var(--ink2)}
@@ -174,7 +174,7 @@ label.qh{cursor:pointer}
   .dash{grid-template-columns:1fr;padding:28px 18px 60px}
   #qlist{display:flex}
   .cards{grid-template-columns:1fr 1fr}
-  .chartcard{padding:16px 14px 10px}.plot{height:300px}
+  .chartcard{padding:16px 14px 10px}.plot{height:210px}
   .band h1{font-size:24px}.band span{font-size:12px}.cs-r strong{font-size:24px}.csum{gap:16px;padding:12px 14px}
   .coin{height:150px;padding:14px 14px}.cv strong{font-size:26px}
   .tile{height:130px;font-size:58px;line-height:130px}.tile .half span{height:130px;line-height:130px}
@@ -214,9 +214,5 @@ label.qh{cursor:pointer}
 .psplash i{position:absolute;left:-34px;top:-10px;width:68px;height:20px;border:3px solid var(--ink);border-radius:50%;opacity:0;animation:pring .8s ease-out forwards}
 .psplash i:nth-of-type(2){animation-delay:.14s;left:-26px;width:52px}
 @keyframes pring{0%{scale:.2;opacity:.9}100%{scale:1.7;opacity:0}}
-.psplash b{position:absolute;left:-4px;top:-4px;width:8px;height:8px;border-radius:50%;background:var(--ink2);opacity:0;animation:pdrop .75s cubic-bezier(.3,.6,.5,1) forwards}
-.psplash b:nth-of-type(1){--tx:-38px}.psplash b:nth-of-type(2){--tx:-18px}.psplash b:nth-of-type(3){--tx:2px}
-.psplash b:nth-of-type(4){--tx:20px}.psplash b:nth-of-type(5){--tx:40px}
-@keyframes pdrop{0%{translate:0 0;opacity:1}50%{translate:var(--tx) -48px;opacity:1}100%{translate:calc(var(--tx)*1.5) 6px;opacity:0}}
 
-@media(prefers-reduced-motion:reduce){.pfly img,.psplash i,.psplash b{animation:none}}
+@media(prefers-reduced-motion:reduce){.pfly img,.psplash i{animation:none}}
