@@ -6,6 +6,16 @@
       url('fonts/DropLine.otf') format('opentype');
   font-weight:100 900;font-style:normal;font-display:swap;
 }
+/* Poppins (geometric sans-serif) - used ONLY by the quote card.
+   Put Poppins-Medium.woff2 (and/or Poppins-Medium.ttf) in the same "fonts" folder. File names are case-sensitive on GitHub Pages.
+   To use another geometric font (Montserrat, Outfit, Jost...), change the family name and file names here and the --geo variable below. */
+@font-face{
+  font-family:'Poppins';
+  src:local('Poppins Medium'),local('Poppins-Medium'),
+      url('fonts/Poppins-Medium.woff2') format('woff2'),
+      url('fonts/Poppins-Medium.ttf') format('truetype');
+  font-weight:500;font-style:normal;font-display:swap;
+}
 :root{
   --ink:#5B2A26;            /* text colour: deep rose-brown that sits well on Soft Pink */
   --ink2:#7A4A42;           /* softer text for small labels */
@@ -13,6 +23,7 @@
   --softpink3:#FEE6DE;      /* light tint for small cards inside the pink panels */
   --pinkgrad:linear-gradient(135deg,var(--softpink),var(--softpink2));--mu:#9a9db0;--ln:#ececf1;
   --font:'Drop Line','Trebuchet MS','Segoe UI',system-ui,-apple-system,sans-serif;
+  --geo:'Poppins','Montserrat','Century Gothic','Avenir Next','Futura','Trebuchet MS',sans-serif;   /* geometric sans-serif, quote card only */
   --mono:var(--font);
   --sans:var(--font);
   --green:#3a7551;--green2:#7cc47f;--leaf:#a9d6a4;--leaf2:#eaf3e8;
@@ -204,9 +215,8 @@ label.qh{cursor:pointer}
 }
 
 /* ---------- Poop card + trend chart (loads after style.css) ---------- */
+/* second row of the cards grid: Poop card (left) + Quote card (right), each the same width as the Water / Food cards */
 .cards{grid-template-columns:1fr 1fr}
-.pcard{grid-column:1/-1}
-@media(min-width:1440px){.cards{grid-template-columns:1fr 1fr 1.2fr}.pcard{grid-column:auto}}
 
 .pcard{position:relative;display:flex;flex-direction:column;justify-content:space-between;min-width:0;height:176px;padding:16px 16px 16px 20px;border-radius:var(--r);background:linear-gradient(135deg,#ffd6dc,#ffe4e7);box-shadow:0 12px 26px rgba(40,40,70,.07)}
 .ptop{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;min-width:0}
@@ -220,6 +230,15 @@ label.qh{cursor:pointer}
 .pcheck input:disabled{cursor:default}
 .pcheck input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
+/* ---------- Quote card: no title, just the quote - the ONLY place the geometric sans-serif is used ---------- */
+.quotecard{position:relative;display:flex;align-items:center;min-width:0;height:176px;padding:16px 20px;border-radius:var(--r);background:var(--pinkgrad);box-shadow:0 12px 26px rgba(40,40,70,.07);overflow:hidden}
+.quotetext{margin:0;width:100%;max-height:100%;overflow-y:auto;scrollbar-width:none;
+  font-family:var(--geo);font-weight:500;font-size:var(--qs,18px);line-height:1.35;letter-spacing:-.1px;
+  color:var(--ink);text-wrap:pretty;overflow-wrap:anywhere}
+.quotetext::-webkit-scrollbar{display:none}
+.quotetext.has::before{content:"\201C"}                       /* the quote marks are added here - type the quote without them */
+.quotetext.has::after{content:"\201D"}
+
 /* the flying poop: fish-style offset-path swim, upright, with a little wobble */
 .pfly{position:absolute;left:0;top:0;z-index:50;pointer-events:none;offset-rotate:0deg}
 .pfly img{display:block;width:100%;height:auto;animation:pwob .42s ease-in-out alternate infinite}
@@ -230,5 +249,15 @@ label.qh{cursor:pointer}
 .psplash i{position:absolute;left:-34px;top:-10px;width:68px;height:20px;border:3px solid var(--ink);border-radius:50%;opacity:0;animation:pring .8s ease-out forwards}
 .psplash i:nth-of-type(2){animation-delay:.14s;left:-26px;width:52px}
 @keyframes pring{0%{scale:.2;opacity:.9}100%{scale:1.7;opacity:0}}
+
+/* phones: the two half-width cards get a little tighter so nothing is squeezed */
+@media(max-width:900px){
+  .pcard,.quotecard{height:150px}
+  .pcard{padding:14px 12px 14px 14px}
+  .pslot{width:72px;height:64px}
+  .pcheck{font-size:13px;gap:8px}
+  .quotecard{padding:14px}
+  .quotetext{font-size:calc(var(--qs,18px)*.78)}
+}
 
 @media(prefers-reduced-motion:reduce){.pfly img,.psplash i{animation:none}}
