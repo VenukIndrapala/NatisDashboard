@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Water &amp; Food Tracker</title>
-<link rel="preload" as="image" href="cow.png">
-<link rel="stylesheet" href="style.css">
+<link rel="preload" as="image" href="cow.png?v=3">
+<link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
 
@@ -14,7 +14,7 @@
   <section class="page show" id="page1" aria-label="Weekly intake">
     <div class="dash">
 
-      <!-- left column: clock, calendar, progress -->
+      <!-- left column: clock, calendar, mood bars, note box -->
       <div class="col left">
         <div class="clock reveal" id="clock" style="--dx:-110px;--i:1" aria-label="Current time in Sri Lanka">
           <div class="tile" id="t-h"><span class="lab l" id="ampm"></span></div>
@@ -42,7 +42,7 @@
         </div>
       </div>
 
-      <!-- centre column: heading, water + food + poop cards, chart, poop chart -->
+      <!-- centre column: heading, water + food + poop + quote cards, chart, poop chart -->
       <div class="col mid">
         <div class="band reveal" style="--dy:-70px;--i:0"><h1>weekly intake</h1><span id="sel-label"></span></div>
         <div class="cards" id="cards"></div>
@@ -62,7 +62,7 @@
       <!-- right column: Today's Log (the cow sits on its top-right edge) -->
       <div class="col right">
         <div class="qwrap reveal" style="--dx:110px;--i:4">
-          <img class="cow" src="cow.png" width="80" height="96" alt="A seated orange Highland cow" draggable="false" decoding="async" onerror="this.style.display='none'">
+          <img class="cow" src="cow.png?v=3" width="80" height="96" alt="A seated orange Highland cow" draggable="false" decoding="async" onerror="this.style.display='none'">
           <h2>Today's Log</h2>
           <small class="qdate" id="qdate"></small>
           <div class="qbox"><ul id="qlist"></ul></div>
@@ -74,7 +74,45 @@
 
 </main>
 
+<!-- two koi fish: they rest beside the cow; tap a fish and both swim around the dashboard (see the "Two koi" block in style.css) -->
+<div id="pond" class="rest" aria-hidden="true">
+    <div class="fish">
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+    </div>
+    <div class="fish">
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+      <div class="koiCoil"></div>
+    </div>
+</div>
+
 <div id="toast" role="status" aria-live="polite"></div>
-<script src="app.js"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>
