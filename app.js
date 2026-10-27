@@ -674,3 +674,70 @@ setInterval(() => {                              // new day: the box unlocks and
   const h = $('#phero'); h.classList.add('pop'); setTimeout(() => h.classList.remove('pop'), 500);
 }, 1000);
 pload(); if (API) setInterval(pload, REFRESH_MS);
+
+/* =====================================================================
+   KOI FISH  (two fish resting beside the cow)
+   - the fish, their swim path, trailing delays and shadow are exactly the ones in the fish page (see the "Two koi" block in style.css)
+   - at rest they are frozen on a straight stretch of the path, small, next to the cow
+   - tap a fish: both swim around the dashboard along that same path; tap again: they zip back and settle beside the cow
+   ===================================================================== */
+const pond = $('#pond'), fishEls = $$('#pond .fish'), coilEls = $$('#pond .koiCoil');
+const REST_S = .78, FISH_LOOP = 20000;            // size of the resting fish, length of one swim around the path (ms)
+let fstate = 'rest', fanims = [], fRestCT = [], fRestProg = 0, fC = [], fRaf = 0, fTimer = 0;
+const fishT = (i, tx, ty, s) => `translate(${tx}px,${ty}px) scale(${i === 1 ? -s : s},${s})`;   // the 2nd fish is the mirror image, as in the fish page
+function fishCentres() {                           // centre of each fish at the resting size (before it is moved next to the cow)
+  fC = fishEls.map((f, i) => {
+    f.classList.remove('glide'); f.style.transform = fishT(i, 0, 0, REST_S);
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    [...f.children].forEach(c => { const r = c.getBoundingClientRect(); x0 = Math.min(x0, r.left); y0 = Math.min(y0, r.top); x1 = Math.max(x1, r.right); y1 = Math.max(y1, r.bottom); });
+    return [(x0 + x1) / 2, (y0 + y1) / 2];
+  });
+}
+function fishRestSpots() {                         // where each resting fish should sit: just left of the cow, one above the other
+  const c = $('.cow'); if (!c) return null; const r = c.getBoundingClientRect(); if (!r.width) return null;
+  return [[r.left - 92, r.top + r.height * .30], [r.left - 112, r.top + r.height * .72]];
+}
+function layoutFish() {
+  if (fstate !== 'rest') return;
+  if (fC.length !== fishEls.length) fishCentres();
+  const sp = fishRestSpots(); if (!sp) return;
+  fishEls.forEach((f, i) => { f.classList.remove('glide'); f.style.transform = fishT(i, sp[i][0] - fC[i][0], sp[i][1] - fC[i][1], REST_S); });
+  pond.classList.add('ready');
+}
+function queueFish() { if (fstate !== 'rest' || fRaf) return; fRaf = requestAnimationFrame(() => { fRaf = 0; layoutFish(); }); }
+function fishOut() {                               // swim off around the dashboard
+  fstate = 'out';
+  fanims.forEach(a => a.playbackRate = 1);
+  pond.classList.remove('rest');
+  fishEls.forEach((f, i) => { f.style.setProperty('--glide', '1.8s'); f.classList.add('glide'); f.style.transform = fishT(i, 0, 0, 1); });
+  setTimeout(() => { if (fstate === 'out') fstate = 'roam'; }, 1800);
+}
+function fishBack() {                              // speed along the path to the resting pose while shrinking back to the cow
+  fstate = 'back';
+  const prog = fanims[14].effect.getComputedTiming().progress || 0, dur = 2800;
+  let d = (fRestProg - prog + 1) % 1; if (d < .14) d += 1;
+  fanims.forEach(a => a.playbackRate = d * FISH_LOOP / dur);
+  const sp = fishRestSpots() || [[0, 0], [0, 0]];
+  fishEls.forEach((f, i) => { f.style.setProperty('--glide', dur + 'ms'); f.classList.add('glide'); f.style.transform = fishT(i, sp[i][0] - fC[i][0], sp[i][1] - fC[i][1], REST_S); });
+  clearTimeout(fTimer);
+  fTimer = setTimeout(() => {
+    fanims.forEach((a, k) => { a.pause(); a.currentTime = fRestCT[k]; a.playbackRate = 1; });
+    pond.classList.add('rest'); fstate = 'rest'; layoutFish();
+  }, dur + 40);
+}
+pond.addEventListener('click', e => {
+  if (!e.target.closest('.koiCoil')) return;
+  if (fstate === 'rest') fishOut(); else if (fstate === 'roam') fishBack();
+});
+addEventListener('scroll', queueFish, { passive: true });
+addEventListener('resize', () => { fC = []; queueFish(); });
+(function startFish() {
+  fanims = coilEls.map(c => c.getAnimations().find(a => a.animationName === 'fishAnim'));
+  if (fanims.some(a => !a)) return;                // the browser can't run them: leave the fish hidden
+  fRestCT = fanims.map(a => a.currentTime || 0);
+  fRestProg = fanims[14].effect.getComputedTiming().progress || 0;
+  fishCentres(); layoutFish();
+  [300, 900, 1600, 2600].forEach(t => setTimeout(() => { if (fstate === 'rest') { fC = []; layoutFish(); } }, t));   // re-place once the cards have finished sliding in and fonts have loaded
+  addEventListener('load', () => { fC = []; queueFish(); });
+  if (window.ResizeObserver) new ResizeObserver(() => { fC = []; queueFish(); }).observe($('.dash'));
+})();
