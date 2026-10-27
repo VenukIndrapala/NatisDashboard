@@ -381,7 +381,7 @@ function hover(i) {
   tip.innerHTML = `<small>${esc(p.full)}</small><b>${fmt(r1(p.v))} ${un(m, p.v)}</b>` + (diff === null ? '' : `<em class="${diff < 0 ? 'down' : ''}">${signed(diff, un(m, diff))}</em>`);
   tip.hidden = false;
   tip.style.left = Math.min(Math.max(x, 80), S.W - 80) + 'px'; tip.style.top = y + 'px';
-  tip.style.translate = y < 120 ? '-50% 18px' : '-50% calc(-100% - 16px)';
+  tip.style.translate = y < 100 ? '-50% 18px' : '-50% calc(-100% - 16px)';
 }
 $('#plot').addEventListener('pointermove', e => {
   if (!S) return; const r = $('#plot').getBoundingClientRect(), n = S.pts.length; if (n < 2) return;
@@ -560,7 +560,7 @@ function phover(i) {
   tip.innerHTML = `<small>${esc(p.full)}</small><b>${d ? (p.v ? 'Yes' : 'No') : p.v + ' ' + dayWord(p.v)}</b>` + (!d && diff !== null ? `<em class="${diff < 0 ? 'down' : ''}">${signed(diff, dayWord(diff))}</em>` : '');
   tip.hidden = false;
   tip.style.left = Math.min(Math.max(x, 80), PS.W - 80) + 'px'; tip.style.top = y + 'px';
-  tip.style.translate = y < 120 ? '-50% 18px' : '-50% calc(-100% - 16px)';
+  tip.style.translate = y < 100 ? '-50% 18px' : '-50% calc(-100% - 16px)';
 }
 function animLast() {                            // the poop has merged into the chart: the line draws in and today's point pops into place (nothing rises from the axis)
   pdraw(true);
