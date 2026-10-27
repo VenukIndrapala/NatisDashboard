@@ -5,9 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Water &amp; Food Tracker</title>
 <link rel="preload" as="image" href="cow.png?v=3">
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="preload" as="image" href="media/background-poster.jpg?v=1">
+<link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
+
+<!-- looping background video: sits behind every card and chart (files live in the "media" folder) -->
+<video id="bgvid" class="bgvid" src="media/background.mp4?v=1" poster="media/background-poster.jpg?v=1" autoplay muted loop playsinline preload="auto" disablepictureinpicture aria-hidden="true" tabindex="-1"></video>
 
 <main id="pages">
 
@@ -113,6 +117,20 @@
 </div>
 
 <div id="toast" role="status" aria-live="polite"></div>
-<script src="app.js?v=3"></script>
+
+<!-- background video helper: keeps it muted and playing; people who prefer reduced motion get a still frame; if the file is missing the page just shows its orange backdrop -->
+<script>
+(function () {
+  var v = document.getElementById('bgvid'); if (!v) return;
+  v.muted = true; v.defaultMuted = true;
+  v.addEventListener('error', function () { v.style.display = 'none'; });
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches) { v.removeAttribute('autoplay'); v.pause(); return; }
+  var go = function () { var p = v.play(); if (p && p.catch) p.catch(function () {}); };
+  go();
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) go(); });   // resume after the tab was hidden
+  document.addEventListener('pointerdown', go, { once: true });                                   // phones in low-power mode may wait for the first touch
+})();
+</script>
+<script src="app.js?v=4"></script>
 </body>
 </html>
