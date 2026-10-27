@@ -101,6 +101,7 @@ async function load(first) {
     if (inflight) return;                        // a save is still travelling - don't overwrite it with older sheet data
     demo = false; DATA.days = d.days || {}; DATA.meals = d.meals || {};
     GOALS = { ...DEFAULT_GOALS, ...(d.goals || {}), food: DEFAULT_GOALS.food };
+    if (d.mood && !moodBusy) { MOOD = d.mood; lsSet(LS_MOOD, MOOD); paintMood(); }   // today's mood bars from the sheet
     saveCache(); renderAll(first && !fromCache);
   } catch (e) {
     console.warn(e);
@@ -138,25 +139,72 @@ function tickClock() {
   if (k !== today) {                                 // midnight in Sri Lanka
     const wasToday = SEL.a === today && !SEL.b; today = k;
     if (wasToday) SEL = { a: today, b: null, ranging: false, pv: null };
-    renderCal(0); renderCards(); updateLabel(); draw(false);
+    renderCal(0); renderCards(); updateLabel(); draw(false); paintMood();
   }
-  progress(n);
 }
 
 /* =====================================================================
-   PROGRESS BARS (day / week / month / year, Sri Lanka time)
+   MOOD BARS (Happy / Sads / Annoyed / Hungry) - drag each bar 0-10 for today
+   - the bar fills smoothly under the finger / mouse, then snaps to the nearest whole number on release
+   - saved per day on the "Mood" tab; a new day (Sri Lanka time) starts again at 0
    ===================================================================== */
+const MOODS = [['happy', 'Happy'], ['sads', 'Sads'], ['annoyed', 'Annoyed'], ['hungry', 'Hungry']];
+const LS_MOOD = 'wf_mood';
+let MOOD = lsGet(LS_MOOD, {});                       // { '2026-10-27': { happy: 7, sads: 0, annoyed: 2, hungry: 5 } }
+let moodDrag = null, moodBusy = 0;                   // moodDrag = { id, raw, before } while a bar is being dragged
 function buildBars() {
-  $('#bars').innerHTML = ['Day', 'Week', 'Month', 'Year'].map(n => `<div class="bar"><div class="track"><div class="fill" id="f-${n}"></div></div><span id="l-${n}">${n}: 0%</span></div>`).join('');
+  $('#bars').innerHTML = MOODS.map(([id, n]) => `<div class="bar mood" data-id="${id}"><div class="track" role="slider" tabindex="0" aria-label="${n}" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0"><div class="fill" id="f-${id}"></div></div><span id="l-${id}">${n}: 0</span></div>`).join('');
+  paintMood();
 }
-function progress(n) {
-  const secs = n.h * 3600 + n.mi * 60 + n.s, dt = new Date(Date.UTC(n.y, n.m - 1, n.d));
-  const dim = new Date(Date.UTC(n.y, n.m, 0)).getUTCDate();
-  const doy = Math.round((dt - Date.UTC(n.y, 0, 1)) / 864e5), diy = (n.y % 4 === 0 && (n.y % 100 !== 0 || n.y % 400 === 0)) ? 366 : 365;
-  const wk = (dt.getUTCDay() + 6) % 7;               // Monday = 0
-  const v = { Day: secs / 86400, Week: (wk * 86400 + secs) / (7 * 86400), Month: ((n.d - 1) * 86400 + secs) / (dim * 86400), Year: (doy * 86400 + secs) / (diy * 86400) };
-  for (const k in v) { const p = Math.round(v[k] * 100); $('#f-' + k).style.width = p + '%'; $('#l-' + k).textContent = k + ': ' + p + '%'; }
+function paintMood() {
+  const m = MOOD[today] || {};
+  MOODS.forEach(([id, n]) => {
+    const v = moodDrag && moodDrag.id === id ? moodDrag.raw : (+m[id] || 0);
+    $('#f-' + id).style.width = (v * 10) + '%';
+    $('#l-' + id).textContent = n + ': ' + Math.round(v);
+    $('#f-' + id).parentElement.setAttribute('aria-valuenow', Math.round(v));
+  });
 }
+const moodX = (t, x) => { const r = t.getBoundingClientRect(); return Math.max(0, Math.min(10, (x - (r.left + 7)) / (r.width - 14) * 10)); };   // 7px = 3px border + 4px padding
+async function saveMood(k, id, v, before) {
+  moodBusy++;
+  try {
+    if (API && !demo) {
+      const r = await post({ action: 'mood', date: k, key: id, v }); if (r.error) throw new Error(r.error);
+      if (r.mood !== true) throw new Error('outdated');                  // an old Code.gs would say "ok" without saving
+    }
+    lsSet(LS_MOOD, MOOD);
+    toast('Saved · ' + MOODS.find(m => m[0] === id)[1] + ' · ' + v + '/10');
+  } catch (err) {
+    MOOD[k] = Object.assign({}, MOOD[k], { [id]: before }); paintMood();
+    toast(/outdated/.test(err.message) ? 'Redeploy The New Code.gs' : 'Not Saved - Check Connection');
+  } finally { moodBusy--; }
+}
+function setMood(id, v) {
+  const k = today, before = +(MOOD[k] || {})[id] || 0;
+  MOOD[k] = Object.assign({}, MOOD[k], { [id]: v }); paintMood();
+  if (v !== before) saveMood(k, id, v, before);
+}
+function endMoodDrag() {
+  if (!moodDrag) return;
+  const { id, raw } = moodDrag; moodDrag = null;
+  $('#f-' + id).closest('.bar').classList.remove('drag');
+  setMood(id, Math.round(raw)); moodBusy--;
+}
+$('#bars').addEventListener('pointerdown', e => {
+  const t = e.target.closest('.track'); if (!t || moodDrag) return;
+  const row = t.closest('.bar'); moodDrag = { id: row.dataset.id, raw: moodX(t, e.clientX) };
+  row.classList.add('drag'); t.setPointerCapture(e.pointerId); moodBusy++; paintMood(); e.preventDefault();
+});
+$('#bars').addEventListener('pointermove', e => { if (moodDrag) { moodDrag.raw = moodX($('#f-' + moodDrag.id).parentElement, e.clientX); paintMood(); } });
+$('#bars').addEventListener('pointerup', endMoodDrag);
+$('#bars').addEventListener('pointercancel', endMoodDrag);
+$('#bars').addEventListener('keydown', e => {
+  const t = e.target.closest('.track'); if (!t) return;
+  const id = t.closest('.bar').dataset.id, cur = +(MOOD[today] || {})[id] || 0;
+  const v = e.key === 'ArrowRight' || e.key === 'ArrowUp' ? cur + 1 : e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? cur - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? 10 : null;
+  if (v === null) return; e.preventDefault(); setMood(id, Math.max(0, Math.min(10, v)));
+});
 
 /* =====================================================================
    CALENDAR  (animation modelled on the reference video)
