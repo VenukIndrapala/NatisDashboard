@@ -154,7 +154,7 @@ const LS_MOOD = 'wf_mood';
 let MOOD = lsGet(LS_MOOD, {});                       // { '2026-10-27': { happy: 7, sads: 0, annoyed: 2, hungry: 5 } }
 let moodDrag = null, moodBusy = 0;                   // moodDrag = { id, raw, before } while a bar is being dragged
 function buildBars() {
-  $('#bars').innerHTML = MOODS.map(([id, n]) => `<div class="bar mood" data-id="${id}"><div class="track" role="slider" tabindex="0" aria-label="${n}" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0"><div class="fill" id="f-${id}"></div></div><span id="l-${id}">${n}: 0</span></div>`).join('');
+  $('#bars').innerHTML = `<h3 class="bh">Nati's Mood Meter</h3><div class="bl">` + MOODS.map(([id, n]) => `<div class="bar mood" data-id="${id}"><div class="track" role="slider" tabindex="0" aria-label="${n}" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0"><div class="fill" id="f-${id}"></div></div><span id="l-${id}">${n}: 0</span></div>`).join('') + `</div>`;
   paintMood();
 }
 function paintMood() {
@@ -492,7 +492,7 @@ const dayWord = n => Math.abs(n) === 1 ? 'day' : 'days';
 function buildPoop() {
   $('#cards').insertAdjacentHTML('beforeend',
     `<div class="pcard reveal lift" id="pcard" style="--dy:-90px;--i:3">
-       <div class="ptop"><div class="cname"><b>Daily Poop Check</b><small id="psub">Daily Check</small></div>
+       <div class="ptop"><div class="cname"><b>Daily Poop Check</b></div>
          <div class="pslot"><img id="phero" src="poop.png" alt="Poop character" draggable="false"></div></div>
        <label class="pcheck"><span>Did You Poop Today? Yes?</span><input type="checkbox" id="pbox"></label>
      </div>`);
@@ -510,7 +510,6 @@ function buildPoop() {
 function prender() {
   const done = !!POOP[today];
   const box = $('#pbox'); box.checked = done; box.disabled = done || flying;
-  $('#psub').textContent = done ? 'Done For Today' : 'Daily Check';
   if (!flying) $('#phero').classList.toggle('gone', done);
 }
 
