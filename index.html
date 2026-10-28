@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Water &amp; Food Tracker</title>
 <link rel="preload" as="image" href="cow.png?v=3">
-<link rel="stylesheet" href="style.css?v=11">
+<link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
 
@@ -110,6 +110,7 @@
             <div class="cat__segment"></div>
             </div>
           </div>
+          <button type="button" class="qbtn rwplay" id="rwPlay" disabled>Play Game</button>
         </div>
       </div>
 
@@ -156,8 +157,14 @@
     </div>
 </div>
 
+<!-- Daily puzzle: full-screen jigsaw that unlocks when the Daily Reward cat reaches 100% -->
+<div id="puz" class="puz" hidden role="dialog" aria-modal="true" aria-label="Daily puzzle">
+  <div class="puz-top"><b>Daily Puzzle</b><span id="puzInfo"></span><button type="button" class="puz-x" id="puzClose" aria-label="Close puzzle">&times;</button></div>
+  <div class="puz-stage" id="puzStage"></div>
+</div>
+
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="app.js?v=8"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>
