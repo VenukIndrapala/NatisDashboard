@@ -523,3 +523,36 @@ label.qh{cursor:pointer}
 .cat__segment:nth-of-type(29){--k:0.034483;--d:0.56s}
 .cat__segment:nth-of-type(30){--k:0.000000;--d:0.58s}
 @media(prefers-reduced-motion:reduce){.cat__segment,.rwpct{transition:none}}
+
+/* ---------- Daily Reward: Play Game button (its space is always reserved, so the cards never jump) ---------- */
+.rwplay{display:block;margin:12px auto 0;padding:11px 24px;opacity:0;visibility:hidden;transform:translateY(8px) scale(.9);
+  transition:opacity .4s,visibility .4s,transform .45s cubic-bezier(.34,1.56,.64,1),background .2s}
+.rwplay.on{opacity:1;visibility:visible;transform:none}
+.rwplay.on:hover{transform:translateY(-2px)}
+
+/* ---------- Daily Puzzle pop-up ---------- */
+.puz{position:fixed;inset:0;z-index:80;display:flex;flex-direction:column;background:linear-gradient(135deg,var(--softpink),var(--softpink2));color:var(--ink);animation:puzIn .35s ease both}
+@keyframes puzIn{from{opacity:0}}
+.puz-top{flex:none;display:flex;align-items:center;gap:14px;height:60px;padding:0 18px;border-bottom:1px solid rgba(91,42,38,.15)}
+.puz-top b{font:700 24px var(--font)}
+.puz-top span{flex:1;font:500 15px var(--font);color:var(--ink2);text-align:right;padding-right:6px}
+.puz-x{flex:none;width:38px;height:38px;border:0;border-radius:50%;background:rgba(255,255,255,.55);color:var(--ink);font:700 26px/1 var(--font);display:grid;place-items:center;padding:0 0 3px;transition:background .2s,transform .2s}
+.puz-x:hover{background:rgba(255,255,255,.9);transform:scale(1.08)}
+.puz-stage{position:relative;flex:1;min-height:0;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+.pz-board{position:absolute;border-radius:6px;background:rgba(255,255,255,.28);box-shadow:inset 0 0 0 2px rgba(91,42,38,.22);overflow:hidden;pointer-events:none}
+.pz-board svg{position:absolute;inset:0;width:100%;height:100%;opacity:.16}
+.pz{position:absolute;left:0;top:0;pointer-events:none;touch-action:none;will-change:transform;filter:drop-shadow(0 4px 7px rgba(60,20,15,.38))}
+.pz svg{display:block;overflow:visible;pointer-events:none}
+.pz-edge{fill:none;stroke:rgba(40,15,10,.45);stroke-width:1.2;stroke-linejoin:round;transition:opacity .6s}
+.pz-hit{fill:transparent;pointer-events:all;cursor:grab}
+.pz.drag{filter:drop-shadow(0 12px 14px rgba(60,20,15,.42))}
+.pz.drag .pz-hit{cursor:grabbing}
+.pz.snap{transition:transform .18s ease-out}
+.pz.lock{filter:none;z-index:1}
+.pz.lock .pz-hit{pointer-events:none}
+.puz-stage.solved .pz{opacity:0;transition:opacity .5s}
+.pfinal{position:absolute;opacity:0;border-radius:6px;box-shadow:0 18px 50px rgba(60,20,15,.35);transition:opacity .6s,transform .9s cubic-bezier(.22,1,.36,1);pointer-events:none}
+.pfinal.show{opacity:1}
+body.puzopen{overflow:hidden}
+@media(max-width:900px){.puz-top b{font-size:20px}.puz-top span{font-size:13px}}
+@media(prefers-reduced-motion:reduce){.puz,.pz.snap,.pfinal,.rwplay{transition:none;animation:none}}
