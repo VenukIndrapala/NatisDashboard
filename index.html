@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Water &amp; Food Tracker</title>
 <link rel="preload" as="image" href="cow.png?v=3">
-<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
 
@@ -71,6 +71,46 @@
           <small class="qdate" id="qdate"></small>
           <div class="qbox"><ul id="qlist"></ul></div>
         </div>
+
+        <!-- Daily Reward: the cat grows with today's progress (2,000 ml water = 50%, 3 meals = 50%) -->
+        <div class="reward reveal lift" id="reward" style="--dx:110px;--i:7">
+          <h2>Daily Reward</h2>
+          <div class="rwpct" id="rwPct" role="img" aria-label="Daily reward progress 0%"></div>
+          <div class="rwcat">
+            <div class="cat" id="rwCat" aria-hidden="true">
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            <div class="cat__segment"></div>
+            </div>
+          </div>
+        </div>
       </div>
 
     </div>
@@ -118,6 +158,6 @@
 
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>
