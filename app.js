@@ -581,7 +581,6 @@ function pzBuild() {
   if (S.solved) { pzFinal(false); return; }
 
   const bd = document.createElement('div'); bd.className = 'pz-board'; Object.assign(bd.style, { left: bx + 'px', top: by + 'px', width: bw + 'px', height: bh + 'px' });
-  bd.innerHTML = `<svg viewBox="0 0 ${bw} ${bh}" preserveAspectRatio="none"><image href="${PZ.src}" width="${bw}" height="${bh}" preserveAspectRatio="none"/></svg>`;
   st.appendChild(bd);
 
   PZ.pieces = [];
