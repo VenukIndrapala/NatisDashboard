@@ -446,3 +446,80 @@ label.qh{cursor:pointer}
 }
 
 @media(prefers-reduced-motion:reduce){.pfly img,.psplash i,.cow,.qwrap::after{animation:none}}
+
+/* ---------- Daily Reward card: the growing cat (from cat-loader.css) ---------- */
+/* progress is one number, --p (0 to 1), set from app.js. Changing it makes every segment slide to its new place,
+   one after the other, so the cat stretches smoothly and then stays at that point. */
+@property --p { syntax:'<number>'; inherits:true; initial-value:0; }
+@property --pct { syntax:'<integer>'; inherits:true; initial-value:0; }
+.reward{position:relative;margin-top:20px;padding:22px 18px 16px;border-radius:var(--r);background:var(--pinkgrad)}
+.reward h2{font:700 30px var(--font);color:var(--ink);padding:0 4px 16px;border-bottom:1px solid rgba(91,42,38,.18);margin-bottom:6px}
+.rwpct{--pct:0;text-align:center;font:700 40px/1.2 var(--font);color:var(--ink);padding:6px 0 0;transition:--pct 2.2s cubic-bezier(.6,0,.4,1);counter-reset:pct var(--pct)}
+.rwpct::after{content:counter(pct) "%"}
+.rwcat{container-type:inline-size;width:100%;display:flex;justify-content:center}
+.cat{--duration:2.2s;--ease:cubic-bezier(.6,0,.4,1);--start:7em;--end:28em;--p:0;
+  font-size:min(calc(100cqw / 32),14px);position:relative;flex:none;width:32em;height:8em}
+.cat__segment{--r:90deg;--d:0s;position:absolute;top:50%;left:2em;width:3em;height:2em;
+  transform:translate(-50%,-50%) translateX(calc(var(--k) * (var(--start) + (var(--end) - var(--start)) * var(--p)))) rotate(var(--r));
+  transition:--p var(--duration) var(--ease) var(--d)}
+.cat__segment:before {
+  background: linear-gradient(90deg,
+                        white 20%,
+                  #e6e6e6 20% 80%,
+                       white 80%);
+  border-radius: 0.25em;
+  content: "";
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.cat__segment:first-of-type {
+  --r: 0deg;
+  width: 4em;
+  height: 4em;
+  z-index: 1;
+}
+.cat__segment:first-of-type:before {
+  background: radial-gradient(0.25em 0.25em at 1.25em 1.6em, white 48%, rgba(255, 255, 255, 0) 50%), radial-gradient(0.75em 0.75em at 1.25em 1.75em, #1a1a1a 48%, rgba(26, 26, 26, 0) 50%), radial-gradient(0.25em 0.25em at 2.75em 1.6em, white 48%, rgba(255, 255, 255, 0) 50%), radial-gradient(0.75em 0.75em at 2.75em 1.75em, #1a1a1a 48%, rgba(26, 26, 26, 0) 50%), radial-gradient(0.9em 0.8em at 1.5em 2.65em, white 48%, rgba(255, 255, 255, 0) 50%), radial-gradient(0.9em 0.8em at 2.5em 2.65em, white 48%, rgba(255, 255, 255, 0) 50%), radial-gradient(1em 0.8em at 1.6em 2.75em, #cccccc 48%, rgba(204, 204, 204, 0) 50%), radial-gradient(1em 0.8em at 2.4em 2.75em, #cccccc 48%, rgba(204, 204, 204, 0) 50%), radial-gradient(0.75em 0.75em at 50% 2.5em, #e69999 48%, rgba(230, 153, 153, 0) 50%), radial-gradient(4em 3em at 50% 2em, white 48%, rgba(255, 255, 255, 0) 50%), radial-gradient(4em 3em at 50% 2.2em, #cccccc 48%, rgba(204, 204, 204, 0) 50%), radial-gradient(1em 3em at 0.75em 1.5em, #e69999 39%, white 40% 49%, rgba(255, 255, 255, 0) 50%), radial-gradient(1em 3em at 3.25em 1.5em, #e69999 39%, white 40% 49%, rgba(255, 255, 255, 0) 50%), radial-gradient(1em 2em at 0.5em 2.8em, white 48%, rgba(255, 255, 255, 0) 50%), radial-gradient(1em 2em at 0.5em 3em, #cccccc 48%, rgba(204, 204, 204, 0) 50%), radial-gradient(1em 2em at 3.5em 2.8em, white 48%, rgba(255, 255, 255, 0) 50%), radial-gradient(1em 2em at 3.5em 3em, #cccccc 48%, rgba(204, 204, 204, 0) 50%);
+  background-repeat: no-repeat;
+}
+.cat__segment:last-of-type {
+  width: 3em;
+  height: 4em;
+}
+.cat__segment:last-of-type:before {
+  background: linear-gradient(90deg, white 20%, #e6e6e6 20% 80%, white 80%) 0 1.5em/3em 0.5em, radial-gradient(3em 2em at top center, #e6e6e6 30%, white 31% 48%, rgba(255, 255, 255, 0) 50%) 0 2em/3em 2em, radial-gradient(1em 4em at 0.5em 0, white 48%, rgba(255, 255, 255, 0) 50%) 0 2em/3em 2em, radial-gradient(1em 4em at 2.5em 0, white 48%, rgba(255, 255, 255, 0) 50%) 0 2em/3em 2em;
+  background-repeat: no-repeat;
+}
+.cat__segment:nth-of-type(1){--k:1.000000;--d:0.00s}
+.cat__segment:nth-of-type(2){--k:0.965517;--d:0.02s}
+.cat__segment:nth-of-type(3){--k:0.931034;--d:0.04s}
+.cat__segment:nth-of-type(4){--k:0.896552;--d:0.06s}
+.cat__segment:nth-of-type(5){--k:0.862069;--d:0.08s}
+.cat__segment:nth-of-type(6){--k:0.827586;--d:0.10s}
+.cat__segment:nth-of-type(7){--k:0.793103;--d:0.12s}
+.cat__segment:nth-of-type(8){--k:0.758621;--d:0.14s}
+.cat__segment:nth-of-type(9){--k:0.724138;--d:0.16s}
+.cat__segment:nth-of-type(10){--k:0.689655;--d:0.18s}
+.cat__segment:nth-of-type(11){--k:0.655172;--d:0.20s}
+.cat__segment:nth-of-type(12){--k:0.620690;--d:0.22s}
+.cat__segment:nth-of-type(13){--k:0.586207;--d:0.24s}
+.cat__segment:nth-of-type(14){--k:0.551724;--d:0.26s}
+.cat__segment:nth-of-type(15){--k:0.517241;--d:0.28s}
+.cat__segment:nth-of-type(16){--k:0.482759;--d:0.30s}
+.cat__segment:nth-of-type(17){--k:0.448276;--d:0.32s}
+.cat__segment:nth-of-type(18){--k:0.413793;--d:0.34s}
+.cat__segment:nth-of-type(19){--k:0.379310;--d:0.36s}
+.cat__segment:nth-of-type(20){--k:0.344828;--d:0.38s}
+.cat__segment:nth-of-type(21){--k:0.310345;--d:0.40s}
+.cat__segment:nth-of-type(22){--k:0.275862;--d:0.42s}
+.cat__segment:nth-of-type(23){--k:0.241379;--d:0.44s}
+.cat__segment:nth-of-type(24){--k:0.206897;--d:0.46s}
+.cat__segment:nth-of-type(25){--k:0.172414;--d:0.48s}
+.cat__segment:nth-of-type(26){--k:0.137931;--d:0.50s}
+.cat__segment:nth-of-type(27){--k:0.103448;--d:0.52s}
+.cat__segment:nth-of-type(28){--k:0.068966;--d:0.54s}
+.cat__segment:nth-of-type(29){--k:0.034483;--d:0.56s}
+.cat__segment:nth-of-type(30){--k:0.000000;--d:0.58s}
+@media(prefers-reduced-motion:reduce){.cat__segment,.rwpct{transition:none}}
