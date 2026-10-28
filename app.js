@@ -309,6 +309,7 @@ function renderCards() {
     el.querySelector('strong').textContent = fmt(r1(avg));
     el.querySelector('.cv span').textContent = (keys.length > 1 ? 'avg ' : '') + '/ ' + fmt(goal) + ' ' + m.cap + snack;
   });
+  paintReward();
 }
 function updateLabel() {
   $('#sel-label').textContent = SEL.b ? short(SEL.a) + ' – ' + short(SEL.b) + ' · daily average' : (SEL.a === today ? 'today · ' : '') + fullDate(SEL.a);
@@ -472,6 +473,25 @@ document.addEventListener('keydown', e => {
 /* =====================================================================
    START
    ===================================================================== */
+/* =====================================================================
+   DAILY REWARD CAT  (today only: 2,000 ml water = 50%, the 3 meals = 50%)
+   ===================================================================== */
+const REWARD_WATER_ML = 2000;                               // only the cat uses this; the Water card keeps its own goal
+var rwReady = false;
+function rewardProgress() {
+  const d = DATA.days[today], water = Math.min(1, (d ? +d.water || 0 : 0) / REWARD_WATER_ML);
+  const meals = Math.min(1, mealsDone(today) / MEAL_DEFS.length);
+  return water * 0.5 + meals * 0.5;                          // 0 to 1
+}
+function paintReward() {
+  const cat = $('#rwCat'), lab = $('#rwPct'); if (!cat || !lab || !rwReady) return;
+  const p = rewardProgress(), pct = Math.round(p * 100);
+  cat.style.setProperty('--p', p.toFixed(4));
+  lab.style.setProperty('--pct', pct);
+  lab.setAttribute('aria-label', 'Daily reward progress ' + pct + '%');
+}
+setTimeout(() => { rwReady = true; paintReward(); }, 750);   // first growth starts once the card has slid in
+
 buildClock(); buildBars(); buildCards(); buildTabs(); renderCal(0); buildQuick(); updateLabel();
 tickClock(); setInterval(tickClock, 1000);
 if (API && loadCache()) { fromCache = true; renderAll(true); }   // show the last saved numbers straight away, then update from the sheet
