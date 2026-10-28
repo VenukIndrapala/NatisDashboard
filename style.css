@@ -453,7 +453,7 @@ label.qh{cursor:pointer}
 @property --p { syntax:'<number>'; inherits:true; initial-value:0; }
 @property --pct { syntax:'<integer>'; inherits:true; initial-value:0; }
 .reward{position:relative;margin-top:20px;padding:22px 18px 16px;border-radius:var(--r);background:var(--pinkgrad)}
-.reward h2{font:700 30px var(--font);color:var(--ink);padding:0 4px 16px;border-bottom:1px solid rgba(91,42,38,.18);margin-bottom:6px}
+.reward h2{font:700 30px var(--font);color:var(--ink);text-align:center;padding:0 4px 16px;border-bottom:1px solid rgba(91,42,38,.18);margin-bottom:6px}
 .rwpct{--pct:0;text-align:center;font:700 40px/1.2 var(--font);color:var(--ink);padding:6px 0 0;transition:--pct 2.2s cubic-bezier(.6,0,.4,1);counter-reset:pct var(--pct)}
 .rwpct::after{content:counter(pct) "%"}
 .rwcat{container-type:inline-size;width:100%;display:flex;justify-content:center}
