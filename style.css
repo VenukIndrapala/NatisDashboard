@@ -110,7 +110,7 @@ h1,h2,h3{margin:0}
 
 /* ---------- progress bars ---------- */
 /* the mood bars now sit on their own soft pink card, so they stay readable on the orange background */
-.bars{display:flex;flex-direction:column;gap:16px;padding:18px 12px 16px;border-radius:var(--r);background:var(--pinkgrad);box-shadow:0 12px 26px rgba(40,40,70,.07)}
+.bars{position:relative;display:flex;flex-direction:column;gap:16px;padding:18px 12px 16px;border-radius:var(--r);background:var(--pinkgrad);box-shadow:0 12px 26px rgba(40,40,70,.07)}
 .bar{display:flex;align-items:center;gap:14px}
 .bars .bh{margin:0 2px;font:700 17px/1.25 var(--font);color:var(--ink)}
 .bars .bl{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;gap:16px}
@@ -457,7 +457,7 @@ label.qh{cursor:pointer}
 .rwpct{--pct:0;text-align:center;font:700 40px/1.2 var(--font);color:var(--ink);padding:6px 0 0;transition:--pct 2.2s cubic-bezier(.6,0,.4,1);counter-reset:pct var(--pct)}
 .rwpct::after{content:counter(pct) "%"}
 .rwcat{container-type:inline-size;width:100%;display:flex;justify-content:center}
-.cat{--duration:2.2s;--ease:cubic-bezier(.6,0,.4,1);--start:7em;--end:28em;--p:0;
+.cat{--duration:2.2s;--ease:cubic-bezier(.6,0,.4,1);--start:2em;--end:28em;--p:0;
   font-size:min(calc(100cqw / 32),14px);position:relative;flex:none;width:32em;height:8em}
 .cat__segment{--r:90deg;--d:0s;position:absolute;top:50%;left:2em;width:3em;height:2em;
   transform:translate(-50%,-50%) translateX(calc(var(--k) * (var(--start) + (var(--end) - var(--start)) * var(--p)))) rotate(var(--r));
