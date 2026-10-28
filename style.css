@@ -40,7 +40,7 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
-body{background:var(--bg);color:var(--ink);font:15px/1.4 var(--font);overflow-x:hidden}
+body{background:var(--bg);color:var(--ink);font:15px/1.4 var(--font);overflow-x:hidden;position:relative}
 button,input,textarea,select{font-family:var(--font)}
 button{font:inherit;color:inherit;cursor:pointer}
 [hidden]{display:none!important}
@@ -311,7 +311,8 @@ label.qh{cursor:pointer}
 @media(max-width:900px){:root{--cow:80px;--cr:20px}}
 
 /* ---------- Two koi (the exact fish from the fish page: body, fins, eyes, swim path, trailing delays and shadow) ---------- */
-/* they rest beside the cow; tapping a fish sends both swimming around the dashboard, tapping again sends them back */
+/* they rest beside the cow; tapping a fish sends both swimming around the dashboard, tapping again sends them back.
+   The pond is now part of the PAGE (position:absolute over the whole document), so the fish scroll with the dashboard instead of staying on the screen. */
 #pond{
   --coilSize:14px;
   --delayCount:40ms;
@@ -319,7 +320,7 @@ label.qh{cursor:pointer}
   --scaleFlip:1;
   --posFlip:0;
   --T:14102ms;                                   /* where on the swim path the resting pose is frozen (a straight, level stretch of the path) */
-  position:fixed;inset:0;z-index:45;pointer-events:none;opacity:0;
+  position:absolute;inset:0;overflow:hidden;z-index:45;pointer-events:none;opacity:0;
 }
 #pond.ready{opacity:1;transition:opacity .6s}
 #pond.rest .fish .koiCoil{animation-play-state:paused}
