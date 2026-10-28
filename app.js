@@ -858,9 +858,11 @@ pload(); if (API) setInterval(pload, REFRESH_MS);
 /* =====================================================================
    KOI FISH  (two fish resting beside the cow)
    ---------------------------------------------------------------------
+   - the fish layer (#pond) is part of the PAGE (position:absolute over the whole document), so everything here works in
+     PAGE coordinates (screen position + scroll). The fish scroll with the dashboard and never follow the screen.
    - at rest they are frozen on a straight stretch of the koi path, small, next to the cow (CSS-driven, see the "Two koi" block in style.css)
    - tap a fish: both start swimming from EXACTLY where they are sitting (nothing is dragged to the centre)
-     and then wander wherever they like - there is no fixed path any more
+     and then wander anywhere over the whole dashboard page - there is no fixed path any more
    - tap again: they turn, swim back to the cow, shrink and settle in their resting pose
    ===================================================================== */
 const pond = $('#pond'), fishEls = $$('#pond .fish');
@@ -873,7 +875,7 @@ const fishT = (i, tx, ty, s) => `translate(${tx}px,${ty}px) scale(${i === 1 ? -s
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const rnd = (a, b) => a + Math.random() * (b - a);
 const angDiff = (a, b) => { let d = a - b; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; };
-const centreOf = el => { const r = el.getBoundingClientRect(); return { x: (r.left + r.right) / 2, y: (r.top + r.bottom) / 2 }; };
+const centreOf = el => { const r = el.getBoundingClientRect(); return { x: (r.left + r.right) / 2 + scrollX, y: (r.top + r.bottom) / 2 + scrollY }; };   // page coordinates
 
 /* ---------------- resting pose ---------------- */
 function fishCentres() {                           // centre of each resting fish + the shape of its body around that centre (before it is moved next to the cow)
@@ -883,12 +885,12 @@ function fishCentres() {                           // centre of each resting fis
     let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
     const pts = [...f.children].map(c => { const r = c.getBoundingClientRect(); x0 = Math.min(x0, r.left); y0 = Math.min(y0, r.top); x1 = Math.max(x1, r.right); y1 = Math.max(y1, r.bottom); return [(r.left + r.right) / 2, (r.top + r.bottom) / 2]; });
     const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-    fC.push([cx, cy]); fShape.push(pts.map(p => [p[0] - cx, p[1] - cy]));
+    fC.push([cx + scrollX, cy + scrollY]); fShape.push(pts.map(p => [p[0] - cx, p[1] - cy]));   // centre in page coordinates, shape relative to it
   });
 }
-function fishRestSpots() {                         // where each resting fish should sit: just left of the cow, one above the other
+function fishRestSpots() {                         // where each resting fish should sit (page coordinates): just left of the cow, one above the other
   const c = $('.cow'); if (!c) return null; const r = c.getBoundingClientRect(); if (!r.width) return null;
-  return [[r.left - 92, r.top + r.height * .30], [r.left - 112, r.top + r.height * .72]];
+  return [[r.left + scrollX - 92, r.top + scrollY + r.height * .30], [r.left + scrollX - 112, r.top + scrollY + r.height * .72]];
 }
 function layoutFish() {
   if (fstate !== 'rest') return;
@@ -901,7 +903,7 @@ function queueFish() { if (fstate !== 'rest' || fRaf) return; fRaf = requestAnim
 
 /* ---------------- free swimming ---------------- */
 function fishOut() {                               // swim off - starting from the exact pose each fish is resting in
-  const bodies = fishCoils.map(cs => cs.map(centreOf));                      // where every segment is right now (screen px)
+  const bodies = fishCoils.map(cs => cs.map(centreOf));                      // where every segment is right now (page px)
   fishEls.forEach(f => { f.classList.remove('glide'); f.style.transform = 'translate(0px,0px) scale(1,1)'; });
   fishCoils.forEach(cs => cs.forEach(c => { c.style.offsetPath = 'none'; c.style.transform = 'none'; }));   // leave the fixed path: from now on the code places every segment
   const base = fishCoils.map(cs => centreOf(cs[0]));                         // where an un-moved segment sits (all segments share it)
@@ -928,7 +930,7 @@ function steer(F, dt, W, H, goal) {                // moves the head; the body f
     F.tTurn -= dt; if (F.tTurn <= 0) { F.wt = rnd(-1.4, 1.4) * (Math.random() < .15 ? 1.8 : 1); F.tTurn = rnd(.7, 2.6); }
     F.tSpeed -= dt; if (F.tSpeed <= 0) { const dart = Math.random() < .12; F.vt = dart ? rnd(230, 290) : rnd(70, 180); F.tSpeed = dart ? rnd(.4, .8) : rnd(1.2, 3.2); }
     F.w += (F.wt - F.w) * (1 - Math.exp(-dt * 3));
-    const m = 140; let ax = 0, ay = 0;             // near a screen edge: turn back towards the middle
+    const m = 140; let ax = 0, ay = 0;             // near an edge of the page: turn back towards the middle
     if (h.x < m) ax += (m - h.x) / m; if (h.x > W - m) ax -= (h.x - (W - m)) / m;
     if (h.y < m) ay += (m - h.y) / m; if (h.y > H - m) ay -= (h.y - (H - m)) / m;
     const push = Math.hypot(ax, ay);
@@ -955,7 +957,7 @@ function swimStep(now) {
   swimRaf = requestAnimationFrame(swimStep);
   if (!SW) return;
   const dt = clamp((now - SW.last) / 1000, 0, .05); SW.last = now;
-  const W = innerWidth, H = innerHeight, spots = fstate === 'roam' ? null : fishRestSpots();
+  const W = pond.clientWidth, H = pond.clientHeight, spots = fstate === 'roam' ? null : fishRestSpots();   // the fish swim over the whole page, not just the visible screen
   SW.fs += (SW.fsT - SW.fs) * (1 - Math.exp(-dt * 3));
   const fs = SW.fs; let worst = 0, arrived = true, calm = true;
   SW.fish.forEach((F, i) => {
@@ -1004,7 +1006,7 @@ pond.addEventListener('click', e => {
   else if (fstate === 'roam') fishBack();
   else if (fstate === 'back') { fstate = 'roam'; SW.fsT = 1; }   // tapped again on the way home: swim off again
 });
-addEventListener('scroll', queueFish, { passive: true });
+/* (no scroll listener any more: the fish belong to the page, so they scroll with it) */
 addEventListener('resize', () => { if (fstate === 'rest') { fC = []; queueFish(); } });
 (function startFish() {
   if (!fishCoils.every(cs => cs.length === HEAD + 1 && cs.every(c => c.getAnimations().some(a => a.animationName === 'fishAnim')))) return;   // the browser can't run them: leave the fish hidden
