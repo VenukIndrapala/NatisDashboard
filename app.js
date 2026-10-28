@@ -770,9 +770,15 @@ function fly(sx, sy, w, h) {
     el.style.offsetPath = `path("${flyPath(sx, sy, ex, ey)}")`; document.body.appendChild(el);
     const dur = Math.max(2800, Math.min(4600, Math.hypot(ex - sx, ey - sy) * 4.5));
     const a = el.animate([
-      { offsetDistance: '0%', opacity: 1, scale: 1 },
-      { offsetDistance: '100%', opacity: 1, scale: 1, offset: .86 },        // linear swim, as in the fish code
-      { offsetDistance: '100%', opacity: 0, scale: 0 }                       // sinks into the axis and vanishes (never flies back)
+      { offsetDistance: '0%', opacity: 1 },
+      { offsetDistance: '100%', opacity: 1, offset: .86 },                  // linear swim, as in the fish code
+      { offsetDistance: '100%', opacity: 0 }                                 // fades out right on the axis
+    ], { duration: dur, easing: 'linear', fill: 'forwards' });
+    // shrink the picture itself (not the path element), so it melts into the axis instead of drifting toward the page corner
+    el.firstElementChild.animate([
+      { scale: 1 },
+      { scale: 1, offset: .86 },
+      { scale: 0 }
     ], { duration: dur, easing: 'linear', fill: 'forwards' });
     setTimeout(() => splash(ex, ey), dur * .86);
     a.onfinish = () => { el.remove(); done(); };
