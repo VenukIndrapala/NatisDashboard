@@ -286,28 +286,74 @@ label.qh{cursor:pointer}
 
 /* ---------- Cow sitting on the top-right edge of the Today's Log card ---------- */
 /* the right column is pushed down by the cow's height, so the cow stands in that space and the card starts below it.
-   The cow's feet (the bottom of cow.png) rest on the card's top edge: bottom:100% = exactly on the edge, the 3px calc tucks the hooves in so it looks seated. */
+   .cow is the FIXED spot (it never moves, so the koi fish can still find it): its bottom edge rests on the card's top edge
+   (bottom:100% = exactly on the edge, the 3px calc tucks the hooves in so it looks seated). Its width follows the picture's proportions.
+   Inside it, three nested layers each carry one movement, so the bounce, the sway and the breathing combine cleanly,
+   and the picture itself does the quick head-shake wiggle. */
 .col.right{padding-top:var(--cow)}
 .qwrap{overflow:visible}
-.qwrap>.cow{position:absolute;right:var(--cr);bottom:calc(100% - 3px);left:auto;top:auto;z-index:2;display:block;height:var(--cow);width:auto;max-width:none;margin:0;
-  pointer-events:none;user-select:none;-webkit-user-drag:none;
-  transform-origin:50% 100%;backface-visibility:hidden;will-change:transform;
-  animation:cowIdle 5.6s cubic-bezier(.42,0,.25,1) infinite}
-/* the calm breathing sway from the cow animation file; it pivots on the hooves so the cow stays planted on the edge */
-@keyframes cowIdle{
-  0%,100%{transform:translate3d(0,0,0) rotate(0deg) scale(1)}
-  18%{transform:translate3d(0,-.3px,0) rotate(-.4deg) scale(1.003)}
-  36%{transform:translate3d(0,-1px,0) rotate(-.9deg) scale(1.01)}
-  52%{transform:translate3d(0,-.4px,0) rotate(.3deg) scale(1.004)}
-  70%{transform:translate3d(0,-.15px,0) rotate(.7deg) scale(1.002)}
-  86%{transform:translate3d(0,-.3px,0) rotate(-.15deg) scale(1.002)}
+.qwrap>.cow{position:absolute;right:var(--cr);bottom:calc(100% - 3px);left:auto;top:auto;z-index:2;display:block;height:var(--cow);width:auto;aspect-ratio:.836;max-width:none;margin:0;
+  pointer-events:none;user-select:none;-webkit-user-drag:none}
+.cow-bob,.cow-tilt,.cow-breath{position:absolute;inset:0;display:block;transform-origin:50% 86%;will-change:transform}   /* every layer pivots near the hooves, so the cow stays planted on the edge */
+.cow-bob{animation:cowBob 3.15s ease-in-out infinite}
+.cow-tilt{animation:cowSway 8.6s cubic-bezier(.42,0,.25,1) infinite}
+.cow-breath{animation:cowBreathe 4.15s ease-in-out infinite}
+.cow-art{display:block;width:100%;height:100%;object-fit:contain;margin:0;
+  user-select:none;-webkit-user-drag:none;pointer-events:none;
+  transform-origin:50% 73%;animation:cowWiggle 8.6s cubic-bezier(.42,0,.25,1) infinite}
+/* the new cow animation (distances are scaled down to this small cow; the angles and timing are exactly the ones from the animation file) */
+@keyframes cowBob{
+  0%,100%{transform:translateY(0) rotate(0deg)}
+  12%{transform:translateY(-1.5px) rotate(-.5deg)}
+  23%{transform:translateY(.25px) rotate(.5deg)}
+  32%{transform:translateY(-3px) rotate(0deg)}
+  43%{transform:translateY(0) rotate(.3deg)}
+  62%{transform:translateY(-.75px) rotate(0deg)}
+  76%{transform:translateY(0) rotate(-.35deg)}
+  88%{transform:translateY(-1.25px) rotate(0deg)}
 }
-/* the soft shadow under the cow that breathes with it (same as the shadow in the cow animation file) */
+@keyframes cowSway{
+  0%,7%,100%{transform:rotate(0deg) translateX(0)}
+  15%{transform:rotate(-4.2deg) translateX(-1px)}
+  22%{transform:rotate(2.7deg) translateX(.75px)}
+  29%{transform:rotate(-1.8deg) translateX(-.25px)}
+  36%,48%{transform:rotate(0deg) translateX(0)}
+  57%{transform:rotate(4deg) translateX(1px)}
+  64%{transform:rotate(-2.5deg) translateX(-.5px)}
+  71%{transform:rotate(1.3deg) translateX(.25px)}
+  78%,86%{transform:rotate(0deg) translateX(0)}
+  92%{transform:rotate(-1.7deg) translateX(-.5px)}
+}
+@keyframes cowBreathe{
+  0%,100%{transform:scale(1)}
+  38%{transform:scale(1.018,.988)}
+  57%{transform:scale(.994,1.012)}
+  72%{transform:scale(1.012,.994)}
+}
+@keyframes cowWiggle{
+  0%,34%,100%{transform:rotate(0deg)}
+  38%{transform:rotate(-2deg)}
+  41%{transform:rotate(2.8deg)}
+  44%{transform:rotate(-2deg)}
+  47%{transform:rotate(1.2deg)}
+  50%{transform:rotate(0deg)}
+  73%{transform:rotate(0deg)}
+  76%{transform:rotate(1.8deg)}
+  79%{transform:rotate(-2.2deg)}
+  82%{transform:rotate(1.2deg)}
+  85%{transform:rotate(0deg)}
+}
+/* the soft shadow under the cow that pulses with the bounce (same timing and squeeze as the shadow in the new cow animation file) */
 .qwrap::after{content:"";position:absolute;z-index:1;pointer-events:none;
   right:calc(var(--cr) + var(--cow)*.836*.17);width:calc(var(--cow)*.836*.66);top:-5px;height:8px;border-radius:50%;
   background:rgba(91,42,38,.2);filter:blur(3px);transform-origin:center;
-  animation:cowShadow 5.6s ease-in-out infinite}
-@keyframes cowShadow{0%,100%{transform:scaleX(1);opacity:.78}36%{transform:scaleX(.94);opacity:.6}70%{transform:scaleX(.98);opacity:.7}}
+  animation:cowShadow 3.15s ease-in-out infinite}
+@keyframes cowShadow{
+  0%,100%{transform:scaleX(1);opacity:.82}
+  32%{transform:scaleX(.88);opacity:.58}
+  57%{transform:scaleX(1.04);opacity:.9}
+  79%{transform:scaleX(.93);opacity:.68}
+}
 @media(max-width:900px){:root{--cow:80px;--cr:20px}}
 
 /* ---------- Two koi (the exact fish from the fish page: body, fins, eyes, swim path, trailing delays and shadow) ---------- */
@@ -446,7 +492,7 @@ label.qh{cursor:pointer}
       rotate(20deg)}
 }
 
-@media(prefers-reduced-motion:reduce){.pfly img,.psplash i,.cow,.qwrap::after{animation:none}}
+@media(prefers-reduced-motion:reduce){.pfly img,.psplash i,.cow-bob,.cow-tilt,.cow-breath,.cow-art,.qwrap::after{animation:none}}
 
 /* ---------- Daily Reward card: the growing cat (from cat-loader.css) ---------- */
 /* progress is one number, --p (0 to 1), set from app.js. Changing it makes every segment slide to its new place,
