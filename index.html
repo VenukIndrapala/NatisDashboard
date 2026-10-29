@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Water &amp; Food Tracker</title>
 <link rel="preload" as="image" href="cow.png?v=3">
-<link rel="stylesheet" href="style.css?v=15">
+<link rel="stylesheet" href="style.css?v=16">
 </head>
 <body>
 
@@ -66,7 +66,16 @@
       <!-- right column: Today's Log (the cow sits on its top-right edge) -->
       <div class="col right">
         <div class="qwrap reveal" style="--dx:110px;--i:4">
-          <img class="cow" src="cow.png?v=3" width="80" height="96" alt="A seated orange Highland cow" draggable="false" decoding="async" onerror="this.style.display='none'">
+          <!-- the cow: .cow is the fixed spot on the card edge; the three wrappers inside carry the bounce, sway and breathing, and the picture itself does the wiggle (see the "Cow" block in style.css) -->
+          <div class="cow" role="img" aria-label="A seated orange Highland cow">
+            <div class="cow-bob">
+              <div class="cow-tilt">
+                <div class="cow-breath">
+                  <img class="cow-art" src="cow.png?v=3" width="80" height="96" alt="" draggable="false" decoding="async" onerror="this.style.display='none'">
+                </div>
+              </div>
+            </div>
+          </div>
           <h2>Today's Log</h2>
           <small class="qdate" id="qdate"></small>
           <div class="qbox"><ul id="qlist"></ul></div>
@@ -165,6 +174,6 @@
 
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="app.js?v=11"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>
