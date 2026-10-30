@@ -254,14 +254,18 @@ label.qh{cursor:pointer}
 .pcheck input:disabled{cursor:default}
 .pcheck input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
-/* ---------- Quote card: no title, just the quote - the ONLY place the geometric sans-serif is used ---------- */
-.quotecard{position:relative;display:flex;align-items:center;min-width:0;height:auto;min-height:176px;padding:16px 20px;border-radius:var(--r);background:var(--pinkgrad);box-shadow:0 12px 26px rgba(40,40,70,.07);overflow:hidden;justify-content:center}
-.quotetext{margin:0;width:100%;max-height:100%;overflow-y:auto;scrollbar-width:none;
+/* ---------- Quote card: the quote with a live timer under it - the ONLY place the geometric sans-serif is used ---------- */
+/* the quote and the timer are stacked and centred together, so the quote sits a little higher than before to make room for the timer */
+.quotecard{position:relative;display:flex;flex-direction:column;align-items:center;min-width:0;height:auto;min-height:176px;padding:16px 20px;border-radius:var(--r);background:var(--pinkgrad);box-shadow:0 12px 26px rgba(40,40,70,.07);overflow:hidden;justify-content:center;gap:12px}
+.quotetext{margin:0;width:100%;flex:0 1 auto;min-height:0;max-height:100%;overflow-y:auto;scrollbar-width:none;
   font-family:var(--geo);font-weight:500;font-size:var(--qs,18px);line-height:1.35;letter-spacing:-.1px;
   color:var(--ink);text-align:center;text-wrap:balance;overflow-wrap:anywhere}
 .quotetext::-webkit-scrollbar{display:none}
 .quotetext.has::before{content:"\201C"}                       /* the quote marks are added here - type the quote without them */
 .quotetext.has::after{content:"\201D"}
+/* the timer: same font as the quote, time since the last entry (HH:MM:SS); tabular digits keep it from jiggling every second */
+.quotetimer{margin:0;flex:none;font-family:var(--geo);font-weight:500;font-size:20px;line-height:1.2;letter-spacing:.5px;
+  font-variant-numeric:tabular-nums;color:var(--ink);text-align:center;white-space:nowrap}
 
 /* the flying poop: fish-style offset-path swim, upright, with a little wobble */
 .pfly{position:absolute;left:0;top:0;z-index:50;pointer-events:none;offset-rotate:0deg}
@@ -280,8 +284,9 @@ label.qh{cursor:pointer}
   .pcard{padding:14px 12px 14px 14px}
   .pslot{width:72px;height:64px}
   .pcheck{font-size:13px;gap:8px}
-  .quotecard{padding:14px}
+  .quotecard{padding:14px;gap:8px}
   .quotetext{font-size:calc(var(--qs,18px)*.78)}
+  .quotetimer{font-size:16px}
 }
 
 /* ---------- Cow sitting on the top-right edge of the Today's Log card ---------- */
