@@ -104,6 +104,7 @@ async function load(first) {
     if (d.mood && !moodBusy) { MOOD = d.mood; lsSet(LS_MOOD, MOOD); paintMood(); }   // today's mood bars from the sheet
     if (typeof d.puzzle === 'string') { PUZZLE_URL = d.puzzle; lsSet(LS_PUZ_URL, d.puzzle); }   // today's picture from the "Puzzle" tab (no key = old Code.gs, keep what we have)
     if (typeof d.quote === 'string') setQuote(d.quote);                              // today's quote from the "Quote" tab (no "quote" key = old Code.gs, keep what we have)
+    if (typeof d.last === 'number' && d.last > 0 && (Date.now() - LAST_AT > 20000 || d.last > LAST)) setLast(d.last);   // moment of the newest entry in the sheet (no "last" key = old Code.gs, keep what we have)
     saveCache(); renderAll(first && !fromCache);
   } catch (e) {
     console.warn(e);
@@ -171,11 +172,13 @@ const moodX = (t, x) => { const r = t.getBoundingClientRect(); return Math.max(0
 async function saveMood(k, id, v, before) {
   moodBusy++;
   try {
+    let ms;                                                              // moment the sheet saved it (restarts the quote-card timer)
     if (API && !demo) {
       const r = await post({ action: 'mood', date: k, key: id, v }); if (r.error) throw new Error(r.error);
       if (r.mood !== true) throw new Error('outdated');                  // an old Code.gs would say "ok" without saving
+      ms = r.last;
     }
-    lsSet(LS_MOOD, MOOD);
+    lsSet(LS_MOOD, MOOD); touchEntry(ms);
     toast('Saved · ' + MOODS.find(m => m[0] === id)[1] + ' · ' + v + '/10');
   } catch (err) {
     MOOD[k] = Object.assign({}, MOOD[k], { [id]: before }); paintMood();
@@ -217,10 +220,13 @@ async function saveNote() {
   if (!v) return toast('Type Something First');
   el.value = '';
   try {
+    let ms;                                                              // moment the sheet saved it (restarts the quote-card timer)
     if (API && !demo) {
       const r = await post({ action: 'note', date: today, text: v }); if (r.error) throw new Error(r.error);
       if (r.note !== true) throw new Error('outdated');                  // an old Code.gs would say "ok" without saving
+      ms = r.last;
     } else { const l = lsGet(LS_NOTES, []); l.push({ date: today, text: v }); lsSet(LS_NOTES, l); }
+    touchEntry(ms);
     toast('Logged · Note · today');
   } catch (err) {
     if (!el.value) el.value = v;                                          // keep what she wrote so nothing is lost
@@ -416,11 +422,13 @@ async function logWater(ml) {
   d.water = r1((+d.water || 0) + ml);
   renderCards(); paintSel(); draw(false); inflight++;
   try {
+    let ms;                                                              // moment the sheet saved it (restarts the quote-card timer)
     if (API && !demo) {
       const r = await post({ action: 'log', date: k, water: ml, note: 'Water' }); if (r.error) throw new Error(r.error);
       if (r.day && typeof r.day.water === 'number') { d.water = r.day.water; renderCards(); draw(false); }   // show exactly what the sheet now holds
-      saveCache();
+      saveCache(); ms = r.last;
     } else { const l = lsGet(LS_LOG, []); l.push({ date: k, water: ml }); lsSet(LS_LOG, l); }
+    touchEntry(ms);
     toast('Logged · +' + fmt(ml) + ' ml · ' + (k === today ? 'today' : short(k)));
   } catch (e) {
     d.water = r1(d.water - ml); if (!had) delete DATA.days[k];
@@ -434,11 +442,13 @@ async function saveMeal(k, meal, patch, restore) {   // patch = { d: true|false 
   else { if (patch.d !== undefined) e[meal].d = patch.d; if (patch.add) e[meal].t = cat(e[meal].t, patch.add); }
   renderCards(); draw(false); inflight++;
   try {
+    let ms;                                                              // moment the sheet saved it (restarts the quote-card timer)
     if (API && !demo) {
       const r = await post({ action: 'meal', date: k, meal, ...patch}); if (r.error) throw new Error(r.error);
       if (patch.add && r.ver !== 2) throw new Error('Code.gs is outdated');   // an old Code.gs would say "ok" without saving the food
-      saveCache();
+      saveCache(); ms = r.last;
     } else lsSet(LS_MEALS, { ...lsGet(LS_MEALS, {}), [k]: e });
+    touchEntry(ms);
     toast((patch.add ? 'Logged · ' + name + ' · ' + (patch.add.length > 28 ? patch.add.slice(0, 27) + '…' : patch.add) : 'Saved · ' + name) + ' · ' + (k === today ? 'today' : short(k)));
   } catch (err) {
     if (before) DATA.meals[k] = before; else delete DATA.meals[k];
@@ -792,12 +802,14 @@ async function poopTick() {
   POOP[k] = true; flying = true; prender(); hero.classList.add('gone');
   const saved = (async () => {
     try {
+      let ms;                                                              // moment the sheet saved it (restarts the quote-card timer)
       if (API && !demo) {
         const j = await post({ action: 'poop', date: k, d: true });
         if (j.error) throw new Error(j.error);
         if (j.poop !== true) throw new Error('outdated');                  // an old Code.gs would say "ok" without saving
+        ms = j.last;
       }
-      lsSet(LS_POOP, POOP); return '';
+      lsSet(LS_POOP, POOP); touchEntry(ms); return '';
     } catch (e) { return /outdated/.test(e.message) ? 'Redeploy The New Code.gs' : 'Not Saved - Check Connection'; }
   })();
   if (!reduce) await fly(sx, sy, r.width, r.height);
@@ -820,21 +832,27 @@ async function pload() {
 }
 
 /* =====================================================================
-   QUOTE CARD  (sits right next to the Poop card - no title, only the quote)
+   QUOTE CARD  (sits right next to the Poop card - the quote, with a live timer under it)
    - the quote is typed by whoever manages the sheet, on the "Quote" tab (Date | Quote)
    - Code.gs sends today's quote (or the latest earlier one) with the data the dashboard already reads every minute,
      so a new day's quote appears by itself - no extra request needed
    - the card's text uses the geometric sans-serif font (see --geo in style.css); long quotes shrink a little to fit
+
+   TIMER under the quote: time since the most recent entry of any kind (water, meals, snack, poop, mood bars, notes)
+   - Code.gs sends the moment of the newest entry as "last" (milliseconds) with the same data the dashboard reads every minute,
+     and every save answers with its own "last", so the timer restarts at 00:00:00 the instant something is logged (on any device)
+   - shown as HH:MM:SS and keeps counting past 24 hours (e.g. 26:10:05); "--:--:--" until the first entry is known
    ===================================================================== */
-const LS_QUOTE = 'wf_quote';
+const LS_QUOTE = 'wf_quote', LS_LAST = 'wf_last_entry';
 const DEMO_QUOTE = 'Small steps every day add up to big things.';
 const cleanQuote = t => String(t || '').replace(/\s+/g, ' ').trim().replace(/^[“”"]+|[“”"]+$/g, '').trim().slice(0, 200);   // the card adds its own quote marks
 let QUOTE = cleanQuote(lsGet(LS_QUOTE, ''));                               // last quote seen on this device, shown instantly on refresh
+let LAST = +lsGet(LS_LAST, 0) || 0, LAST_AT = 0;                           // LAST = moment of the newest entry (ms); LAST_AT = when THIS device last saved one (so an older sheet read can't undo it)
 function buildQuote() {
   $('#cards').insertAdjacentHTML('beforeend',
-    `<div class="quotecard reveal lift" id="quotecard" style="--dy:-90px;--i:4"><p class="quotetext" id="quotetext"></p></div>`);
+    `<div class="quotecard reveal lift" id="quotecard" style="--dy:-90px;--i:4"><p class="quotetext" id="quotetext"></p><p class="quotetimer" id="quotetimer" role="timer" aria-label="Time since the last entry">--:--:--</p></div>`);
   if (!API && !QUOTE) QUOTE = DEMO_QUOTE;                                  // demo mode: show a sample
-  paintQuote();
+  paintQuote(); paintTimer();
 }
 function paintQuote() {
   const el = $('#quotetext'); if (!el) return;
@@ -843,6 +861,19 @@ function paintQuote() {
   el.style.setProperty('--qs', (n <= 50 ? 22 : n <= 90 ? 19 : n <= 140 ? 17 : n <= 180 ? 15 : 14) + 'px');
 }
 function setQuote(t) { QUOTE = cleanQuote(t); lsSet(LS_QUOTE, QUOTE); paintQuote(); }
+
+/* ---------------- live timer ---------------- */
+function fmtElapsed(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  return pad(Math.floor(s / 3600)) + ':' + pad(Math.floor(s % 3600 / 60)) + ':' + pad(s % 60);
+}
+function paintTimer() {
+  const el = $('#quotetimer'); if (!el) return;
+  el.textContent = LAST > 0 ? fmtElapsed(Date.now() - LAST) : '--:--:--';
+}
+function setLast(ms) { LAST = ms; lsSet(LS_LAST, ms); paintTimer(); }
+function touchEntry(ms) { LAST_AT = Date.now(); setLast(typeof ms === 'number' && ms > 0 ? ms : Date.now()); }   // an entry was just saved: restart the timer (ms = the sheet's own save time when it sent one)
+setInterval(paintTimer, 1000);
 
 /* ---------------- start ---------------- */
 buildPoop(); buildQuote(); prender(); pdraw(true);
