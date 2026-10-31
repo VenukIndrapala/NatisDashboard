@@ -1,6 +1,6 @@
 'use strict';
 /* =====================================================================
-   LOGIN SCREEN - loads after app.js (it uses the API address defined there)
+   LOGIN SCREEN - loads after app.js (it uses the API address and the koi functions defined there)
    - the password is NOT in this file: it is checked by Code.gs against the "Password" tab of the sheet
    - nothing is remembered: every page load / refresh asks for the password again
    ===================================================================== */
@@ -26,10 +26,26 @@
     input.focus();
   });
 
+  /* The koi rest beside the cow, and their spot is worked out from where the cow is at that moment.
+     While the cards are still sliding in, the cow is shifted to the right, so the fish would end up on top of it.
+     So: keep the fish hidden, wait until the cow's slide-in has finished, place them beside it, then fade them in. */
+  function placeKoi() {
+    try { if (typeof fstate !== 'undefined' && fstate === 'rest') { fC = []; layoutFish(); } } catch (err) {}
+    document.body.classList.remove('pondwait');
+  }
+  function koiAfterSlide() {
+    const card = document.querySelector('.qwrap'); let fired = false;
+    const go = () => { if (fired) return; fired = true; if (card) card.removeEventListener('animationend', onEnd); setTimeout(placeKoi, 60); };
+    const onEnd = e => { if (e.target === card && e.animationName === 'cardIn') go(); };
+    if (card && !calm) card.addEventListener('animationend', onEnd);
+    setTimeout(go, calm ? 100 : 2600);                                              // safety net if the event never arrives
+  }
+
   function unlock() {
     done = true; input.value = ''; input.type = 'password'; input.blur(); say('');
+    document.body.classList.add('pondwait');
     box.classList.add('out');                                                        // glass box slides out, then the pink picture
-    setTimeout(() => document.body.classList.remove('locked'), calm ? 0 : 380);      // dashboard cards slide in with their normal entrance
+    setTimeout(() => { document.body.classList.remove('locked'); koiAfterSlide(); }, calm ? 0 : 380);   // dashboard cards slide in with their normal entrance
     setTimeout(() => { box.hidden = true; }, calm ? 400 : 1300);
   }
 
