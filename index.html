@@ -5,9 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Water &amp; Food Tracker</title>
 <link rel="preload" as="image" href="cow.png?v=3">
+<link rel="preload" as="image" href="login-bg.jpg">
 <link rel="stylesheet" href="style.css?v=16">
+<link rel="stylesheet" href="login.css?v=1">
 </head>
-<body>
+<body class="locked">
 
 <main id="pages">
 
@@ -174,6 +176,27 @@
 
 <div id="toast" role="status" aria-live="polite"></div>
 
+<!-- LOGIN: pink picture + frosted glass box. Covers everything until the right password is entered (checked by Code.gs against the "Password" tab). -->
+<div id="login" class="login" role="dialog" aria-modal="true" aria-label="Login">
+  <div class="lg-bg"></div>
+  <div class="lg-box">
+    <h1>Welcome</h1>
+    <form class="lg-form" id="lgForm" autocomplete="off" novalidate>
+      <label for="lgPass">Password</label>
+      <div class="lg-field">
+        <input type="password" id="lgPass" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go">
+        <button type="button" class="lg-eye" id="lgEye" aria-label="Show password" aria-pressed="false">
+          <svg class="on" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg class="off" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.1A9.7 9.7 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.1 4M6.3 6.4C3.6 8.1 2 12 2 12s3.6 7 10 7c1.7 0 3.2-.4 4.5-1M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+        </button>
+      </div>
+      <p class="lg-msg" id="lgMsg" role="alert" aria-live="assertive"></p>
+      <button type="submit" class="lg-btn" id="lgBtn">Enter</button>
+    </form>
+  </div>
+</div>
+
 <script src="app.js?v=12"></script>
+<script src="login.js?v=1"></script>
 </body>
 </html>
