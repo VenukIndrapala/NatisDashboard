@@ -103,7 +103,7 @@ async function load(first) {
     GOALS = { ...DEFAULT_GOALS, ...(d.goals || {}), food: DEFAULT_GOALS.food };
     if (d.mood && !moodBusy) { MOOD = d.mood; lsSet(LS_MOOD, MOOD); paintMood(); }   // today's mood bars from the sheet
     if (typeof d.puzzle === 'string') { PUZZLE_URL = d.puzzle; lsSet(LS_PUZ_URL, d.puzzle); }   // today's picture from the "Puzzle" tab (no key = old Code.gs, keep what we have)
-    if (typeof d.quote === 'string') setQuote(d.quote);                              // today's quote from the "Quote" tab (no "quote" key = old Code.gs, keep what we have)
+    if (typeof d.quote === 'string') setQuote(d.quote);                              // (the quote is no longer shown on the card; kept so nothing else breaks)
     if (typeof d.last === 'number' && d.last > 0 && (Date.now() - LAST_AT > 20000 || d.last > LAST)) setLast(d.last);   // moment of the newest entry in the sheet (no "last" key = old Code.gs, keep what we have)
     saveCache(); renderAll(first && !fromCache);
   } catch (e) {
@@ -832,36 +832,48 @@ async function pload() {
 }
 
 /* =====================================================================
-   QUOTE CARD  (sits right next to the Poop card - the quote, with a live timer under it)
-   - the quote is typed by whoever manages the sheet, on the "Quote" tab (Date | Quote)
-   - Code.gs sends today's quote (or the latest earlier one) with the data the dashboard already reads every minute,
-     so a new day's quote appears by itself - no extra request needed
-   - the card's text uses the geometric sans-serif font (see --geo in style.css); long quotes shrink a little to fit
+   TIMER CARD  (sits right next to the Poop card)
+   - a "Press To Annoy Venuk" button (styled like the "Add" button in Today's Log) with the live timer under it
+   - pressing the button makes Code.gs email venuk.kishane@gmail.com (the address lives in Code.gs, not in the page)
+   - the paper plane rests on the right side of the card (see PAPER PLANE below)
 
-   TIMER under the quote: time since the most recent entry of any kind (water, meals, snack, poop, mood bars, notes)
+   TIMER under the button: time since the most recent entry of any kind (water, meals, snack, poop, mood bars, notes)
    - Code.gs sends the moment of the newest entry as "last" (milliseconds) with the same data the dashboard reads every minute,
      and every save answers with its own "last", so the timer restarts at 00:00:00 the instant something is logged (on any device)
    - shown as HH:MM:SS and keeps counting past 24 hours (e.g. 26:10:05); "--:--:--" until the first entry is known
    ===================================================================== */
 const LS_QUOTE = 'wf_quote', LS_LAST = 'wf_last_entry';
-const DEMO_QUOTE = 'Small steps every day add up to big things.';
-const cleanQuote = t => String(t || '').replace(/\s+/g, ' ').trim().replace(/^[“”"]+|[“”"]+$/g, '').trim().slice(0, 200);   // the card adds its own quote marks
-let QUOTE = cleanQuote(lsGet(LS_QUOTE, ''));                               // last quote seen on this device, shown instantly on refresh
+const cleanQuote = t => String(t || '').replace(/\s+/g, ' ').trim().replace(/^[“”"]+|[“”"]+$/g, '').trim().slice(0, 200);
+let QUOTE = cleanQuote(lsGet(LS_QUOTE, ''));                               // kept only so the sheet's "Quote" tab keeps working if it is ever shown again
 let LAST = +lsGet(LS_LAST, 0) || 0, LAST_AT = 0;                           // LAST = moment of the newest entry (ms); LAST_AT = when THIS device last saved one (so an older sheet read can't undo it)
 function buildQuote() {
   $('#cards').insertAdjacentHTML('beforeend',
-    `<div class="quotecard reveal lift" id="quotecard" style="--dy:-90px;--i:4"><p class="quotetext" id="quotetext"></p><p class="quotetimer" id="quotetimer" role="timer" aria-label="Time since the last entry">--:--:--</p></div>`);
-  if (!API && !QUOTE) QUOTE = DEMO_QUOTE;                                  // demo mode: show a sample
-  paintQuote(); paintTimer();
+    `<div class="quotecard reveal lift" id="quotecard" style="--dy:-90px;--i:4"><button type="button" class="qbtn annoybtn" id="annoyBtn" data-pop>Press To Annoy Venuk</button><p class="quotetimer" id="quotetimer" role="timer" aria-label="Time since the last entry">--:--:--</p></div>`);
+  paintTimer();
+  $('#annoyBtn').addEventListener('click', annoyVenuk);
   planeMount();                                                            // the paper plane that rests in this card
 }
-function paintQuote() {
-  const el = $('#quotetext'); if (!el) return;
-  const n = QUOTE.length;
-  el.textContent = QUOTE; el.classList.toggle('has', n > 0);
-  el.style.setProperty('--qs', (n <= 50 ? 22 : n <= 90 ? 19 : n <= 140 ? 17 : n <= 180 ? 15 : 14) + 'px');
+function setQuote(t) { QUOTE = cleanQuote(t); lsSet(LS_QUOTE, QUOTE); }
+
+/* ---------------- the annoy button ---------------- */
+let annoyBusy = false;
+async function annoyVenuk() {
+  if (annoyBusy) return; annoyBusy = true;
+  const b = $('#annoyBtn'); b.disabled = true;
+  try {
+    if (API && !demo) {
+      const r = await post({ action: 'annoy', date: today });
+      if (r.error) throw new Error(r.error);
+      if (r.annoyed !== true) throw new Error('outdated');                 // an old Code.gs would say "ok" without sending the email
+    }
+    toast('Sent · Venuk has been annoyed');
+  } catch (err) {
+    const m = String(err.message);
+    toast(/outdated/.test(m) ? 'Redeploy The New Code.gs' : m === 'wait' ? 'Give Venuk A Moment' : m === 'mail' ? 'Email Failed - Authorize Code.gs' : 'Not Sent - Check Connection');
+  } finally {
+    setTimeout(() => { annoyBusy = false; b.disabled = false; }, 8000);    // short pause so the inbox isn't flooded by accident
+  }
 }
-function setQuote(t) { QUOTE = cleanQuote(t); lsSet(LS_QUOTE, QUOTE); paintQuote(); }
 
 /* ---------------- live timer ---------------- */
 function fmtElapsed(ms) {
@@ -877,14 +889,14 @@ function touchEntry(ms) { LAST_AT = Date.now(); setLast(typeof ms === 'number' &
 setInterval(paintTimer, 1000);
 
 /* =====================================================================
-   PAPER PLANE  (rests in the bottom-right corner of the timer / quote card)
+   PAPER PLANE  (rests on the right side of the timer card, level with its centre)
    ---------------------------------------------------------------------
    - like the poop character, it stays perfectly still until the user acts - here, until the plane is tapped
    - on tap, a copy of the plane is lifted out of the card (the card clips its contents) and flies with the exact
      paper-plane animation: it folds through the original keyframes, streams its trail, then glides up and off the
      right side of the screen
    - once it has left, the plane fades back into the card so it can be launched again
-   - its styles are injected from here, so no other file needs to change
+   - its styles (and the annoy button's) are injected from here, so no other file needs to change
    ===================================================================== */
 const PL_ROWS = [
   [184,180, 243,154, 284,160, 340,164, 383,243, 355,218, 41,44, 172,211],
@@ -983,7 +995,8 @@ function planeMount() {
     plStyled = true;
     const st = document.createElement('style');
     st.textContent =
-      '.pplane{position:absolute;right:12px;bottom:10px;width:92px;aspect-ratio:390/260;padding:0;border:0;background:none;cursor:pointer;z-index:2;-webkit-tap-highlight-color:transparent;transition:opacity .5s ease,scale .25s ease}'
+      /* the plane: bigger, on the right side, vertically centred in the card */
+      '.pplane{position:absolute;right:12px;top:50%;translate:0 -50%;width:120px;aspect-ratio:390/260;padding:0;border:0;background:none;cursor:pointer;z-index:2;-webkit-tap-highlight-color:transparent;transition:opacity .5s ease,scale .25s ease}'
       + '.pplane:hover{scale:1.06}'
       + '.pplane.away{opacity:0;pointer-events:none;transition:none}'
       + '.pplane:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:10px}'
@@ -992,7 +1005,12 @@ function planeMount() {
       + '.pl-ink{stroke:#222;stroke-width:4;stroke-linejoin:round;stroke-linecap:round;fill:none}'
       + '.pl-blue{fill:#ffb3ba}.pl-white{fill:#fff}'
       + '.pl-trail path{fill:none;stroke:#222;stroke-width:4;stroke-linecap:round}'
-      + '@media(max-width:900px){.pplane{width:72px;right:8px;bottom:8px}}';
+      /* the timer card: the button and timer are centred in the space left of the plane */
+      + '.quotecard{padding-right:146px}'
+      + '.annoybtn{padding:13px 18px;line-height:1.2;text-align:center;white-space:normal;max-width:100%}'
+      + '.annoybtn:disabled{opacity:.6;cursor:default;transform:none}'
+      + '.annoybtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}'
+      + '@media(max-width:900px){.pplane{width:64px;right:8px}.quotecard{padding-right:80px}.annoybtn{font-size:13px;padding:10px 12px}}';
     document.head.appendChild(st);
   }
   const s = plSVG(), b = document.createElement('button');
