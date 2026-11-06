@@ -835,7 +835,7 @@ async function pload() {
    TIMER CARD  (sits right next to the Poop card)
    - a "Press To Annoy Venuk" button (styled like the "Add" button in Today's Log) with the live timer under it
    - pressing the button makes Code.gs email venuk.kishane@gmail.com (the address lives in Code.gs, not in the page)
-   - the paper plane rests on the right side of the card (see PAPER PLANE below)
+   - pressing the button is also the ONLY thing that makes the paper plane fly (see PAPER PLANE below)
 
    TIMER under the button: time since the most recent entry of any kind (water, meals, snack, poop, mood bars, notes)
    - Code.gs sends the moment of the newest entry as "last" (milliseconds) with the same data the dashboard reads every minute,
@@ -860,6 +860,7 @@ let annoyBusy = false;
 async function annoyVenuk() {
   if (annoyBusy) return; annoyBusy = true;
   const b = $('#annoyBtn'); b.disabled = true;
+  planeLaunch();                                                           // the plane flies off the screen every time the button is pressed
   try {
     if (API && !demo) {
       const r = await post({ action: 'annoy', date: today });
@@ -891,11 +892,11 @@ setInterval(paintTimer, 1000);
 /* =====================================================================
    PAPER PLANE  (rests on the right side of the timer card, level with its centre)
    ---------------------------------------------------------------------
-   - like the poop character, it stays perfectly still until the user acts - here, until the plane is tapped
-   - on tap, a copy of the plane is lifted out of the card (the card clips its contents) and flies with the exact
+   - it rests perfectly still and cannot be tapped itself - it is a decoration until the "Press To Annoy Venuk" button is pressed
+   - on every press of that button, a copy of the plane is lifted out of the card (the card clips its contents) and flies with the exact
      paper-plane animation: it folds through the original keyframes, streams its trail, then glides up and off the
      right side of the screen
-   - once it has left, the plane fades back into the card so it can be launched again
+   - once it has left, the plane fades back into the card so it is ready for the next press
    - its styles (and the annoy button's) are injected from here, so no other file needs to change
    ===================================================================== */
 const PL_ROWS = [
@@ -995,11 +996,9 @@ function planeMount() {
     plStyled = true;
     const st = document.createElement('style');
     st.textContent =
-      /* the plane: bigger, on the right side, vertically centred in the card */
-      '.pplane{position:absolute;right:12px;top:50%;translate:0 -50%;width:120px;aspect-ratio:390/260;padding:0;border:0;background:none;cursor:pointer;z-index:2;-webkit-tap-highlight-color:transparent;transition:opacity .5s ease,scale .25s ease}'
-      + '.pplane:hover{scale:1.06}'
-      + '.pplane.away{opacity:0;pointer-events:none;transition:none}'
-      + '.pplane:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:10px}'
+      /* the plane: bigger, on the right side, vertically centred in the card; not tappable (only the annoy button launches it) */
+      '.pplane{position:absolute;right:12px;top:50%;translate:0 -50%;width:120px;aspect-ratio:390/260;pointer-events:none;z-index:2;transition:opacity .5s ease}'
+      + '.pplane.away{opacity:0;transition:none}'
       + '.pl-svg{display:block;width:100%;height:100%;overflow:visible}'
       + '.pl-fly{position:fixed;z-index:55;pointer-events:none;will-change:transform}'
       + '.pl-ink{stroke:#222;stroke-width:4;stroke-linejoin:round;stroke-linecap:round;fill:none}'
@@ -1013,13 +1012,12 @@ function planeMount() {
       + '@media(max-width:900px){.pplane{width:64px;right:8px}.quotecard{padding-right:80px}.annoybtn{font-size:13px;padding:10px 12px}}';
     document.head.appendChild(st);
   }
-  const s = plSVG(), b = document.createElement('button');
-  b.type = 'button'; b.id = 'pplane'; b.className = 'pplane'; b.setAttribute('aria-label', 'Tap to launch the paper plane'); b.innerHTML = s.html;
-  card.appendChild(b);
-  plDraw(plRefs(b), plPose(0));                        // resting pose: the first keyframe, trail hidden
-  b.addEventListener('click', planeLaunch);
+  const s = plSVG(), d = document.createElement('div');
+  d.id = 'pplane'; d.className = 'pplane'; d.setAttribute('aria-hidden', 'true'); d.innerHTML = s.html;
+  card.appendChild(d);
+  plDraw(plRefs(d), plPose(0));                        // resting pose: the first keyframe, trail hidden
 }
-function planeLaunch() {
+function planeLaunch() {                               // called only by the annoy button
   if (plBusy) return; plBusy = true;
   const btn = $('#pplane'), r = btn.getBoundingClientRect();
   const fly = document.createElement('div'); fly.className = 'pl-fly';
@@ -1030,7 +1028,7 @@ function planeLaunch() {
   const exitX = innerWidth - (r.left + r.width / 2) + r.width * 1.5, exitY = innerHeight * 0.14, easeIn = p => Math.pow(p, 2.2), start = performance.now();
   const finish = () => {
     fly.remove();
-    setTimeout(() => { btn.classList.remove('away'); plBusy = false; }, 900);   // fades back into the card, ready for the next tap
+    setTimeout(() => { btn.classList.remove('away'); plBusy = false; }, 900);   // fades back into the card, ready for the next press
   };
   const frame = now => {
     const t = ((now - start) / 1000) * (reduce ? 6 : 1);
