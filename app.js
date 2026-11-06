@@ -842,9 +842,6 @@ async function pload() {
    - Code.gs sends the moment of the newest entry as "last" (milliseconds) with the same data the dashboard reads every minute,
      and every save answers with its own "last", so the timer restarts at 00:00:00 the instant something is logged (on any device)
    - shown as HH:MM:SS and keeps counting past 24 hours (e.g. 26:10:05); "--:--:--" until the first entry is known
-
-   PAPER PLANE next to the timer: tap it and it folds, streams its trail and flies off the right side of the screen
-   (same keyframes / timing / exit as the paper-plane page). It only moves when tapped, like the poop only moves when its box is ticked.
    ===================================================================== */
 const LS_QUOTE = 'wf_quote', LS_LAST = 'wf_last_entry';
 const DEMO_QUOTE = 'Small steps every day add up to big things.';
@@ -853,9 +850,10 @@ let QUOTE = cleanQuote(lsGet(LS_QUOTE, ''));                               // la
 let LAST = +lsGet(LS_LAST, 0) || 0, LAST_AT = 0;                           // LAST = moment of the newest entry (ms); LAST_AT = when THIS device last saved one (so an older sheet read can't undo it)
 function buildQuote() {
   $('#cards').insertAdjacentHTML('beforeend',
-    `<div class="quotecard reveal lift" id="quotecard" style="--dy:-90px;--i:4"><p class="quotetext" id="quotetext"></p><div class="qfoot"><p class="quotetimer" id="quotetimer" role="timer" aria-label="Time since the last entry">--:--:--</p><button type="button" class="qplane" id="qplane" aria-label="Launch the paper plane"></button></div></div>`);
+    `<div class="quotecard reveal lift" id="quotecard" style="--dy:-90px;--i:4"><p class="quotetext" id="quotetext"></p><p class="quotetimer" id="quotetimer" role="timer" aria-label="Time since the last entry">--:--:--</p></div>`);
   if (!API && !QUOTE) QUOTE = DEMO_QUOTE;                                  // demo mode: show a sample
   paintQuote(); paintTimer();
+  planeMount();                                                            // the paper plane that rests in this card
 }
 function paintQuote() {
   const el = $('#quotetext'); if (!el) return;
@@ -878,23 +876,17 @@ function setLast(ms) { LAST = ms; lsSet(LS_LAST, ms); paintTimer(); }
 function touchEntry(ms) { LAST_AT = Date.now(); setLast(typeof ms === 'number' && ms > 0 ? ms : Date.now()); }   // an entry was just saved: restart the timer (ms = the sheet's own save time when it sent one)
 setInterval(paintTimer, 1000);
 
-/* ---------------- paper plane ---------------- */
-(function planeStyles() {                                                  // the plane's styles live here, so only this file needs changing
-  const s = document.createElement('style');
-  s.textContent =
-    '.qfoot{display:flex;align-items:center;justify-content:center;gap:16px;flex:none}' +
-    '.qplane{flex:none;display:block;width:92px;aspect-ratio:390/260;padding:0;margin:0;border:0;background:none;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:transform .25s}' +
-    '.qplane:hover{transform:translateY(-3px) rotate(-3deg)}' +
-    '.qplane.gone{visibility:hidden}' +
-    '.qplane:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:8px}' +
-    '.plsvg{display:block;width:100%;height:100%;overflow:visible}' +
-    '.plfly{position:fixed;z-index:90;pointer-events:none;will-change:transform}' +
-    '@media(max-width:900px){.qplane{width:72px}.qfoot{gap:10px}}';
-  document.head.appendChild(s);
-})();
-
-/* the original flight keyframes - unchanged, so the folding, flight path, timing and exit are exactly the same */
-const PLANE_ROWS = [
+/* =====================================================================
+   PAPER PLANE  (rests in the bottom-right corner of the timer / quote card)
+   ---------------------------------------------------------------------
+   - like the poop character, it stays perfectly still until the user acts - here, until the plane is tapped
+   - on tap, a copy of the plane is lifted out of the card (the card clips its contents) and flies with the exact
+     paper-plane animation: it folds through the original keyframes, streams its trail, then glides up and off the
+     right side of the screen
+   - once it has left, the plane fades back into the card so it can be launched again
+   - its styles are injected from here, so no other file needs to change
+   ===================================================================== */
+const PL_ROWS = [
   [184,180, 243,154, 284,160, 340,164, 383,243, 355,218, 41,44, 172,211],
   [184,189, 243,162, 284,170, 343,176, 381,259, 355,233, 42,43, 185,221],
   [184,200, 247,174, 286,182, 343,189, 380,275, 354,247, 43,42, 199,233],
@@ -916,113 +908,130 @@ const PLANE_ROWS = [
   [189,160, 224,132, 272,119, 318,108, 391,155, 355,144, 48,42, 127,165],
   [188,161, 226,131, 272,117, 323,104, 391,151, 355,142, 50,41, 125,163]
 ];
-const PL_STEP = 0.1, PL_POSE = PL_STEP * (PLANE_ROWS.length - 1), PL_EXIT = 1.5, PL_TRAIL = 270;
-let planeSeq = 0, planeBusy = false;
+const PL_STEP = 0.1, PL_POSE = PL_STEP * (PL_ROWS.length - 1), PL_EXIT = 1.5, PL_TRAIL = 270;
+let plCount = 0, plBusy = false, plStyled = false;
+const plPts = (...p) => p.map(n => n.toFixed(1)).join(' ');
 
-function planePose(t) {                                                    // Catmull-Rom interpolation between the keyframe rows
-  const u = Math.min(Math.max(t, 0), PL_POSE) / PL_STEP, R = PLANE_ROWS;
-  const i = Math.min(Math.floor(u), R.length - 2), f = u - i;
-  const a = R[Math.max(i - 1, 0)], b = R[i], c = R[i + 1], d = R[Math.min(i + 2, R.length - 1)];
+function plPose(t) {                                   // Catmull-Rom interpolation between the original keyframe rows
+  const u = Math.min(Math.max(t, 0), PL_POSE) / PL_STEP;
+  const i = Math.min(Math.floor(u), PL_ROWS.length - 2), f = u - i;
+  const a = PL_ROWS[Math.max(i - 1, 0)], b = PL_ROWS[i], c = PL_ROWS[i + 1], d = PL_ROWS[Math.min(i + 2, PL_ROWS.length - 1)];
   const f2 = f * f, f3 = f2 * f;
   return b.map((_, k) => 0.5 * ((2 * b[k]) + (-a[k] + c[k]) * f + (2 * a[k] - 5 * b[k] + 4 * c[k] - d[k]) * f2 + (-a[k] + 3 * b[k] - 3 * c[k] + d[k]) * f3));
 }
-const plPts = (...p) => p.map(n => n.toFixed(1)).join(' ');
-
-function planeMarkup(u) {                                                  // u = unique id prefix, so the resting plane and the flying copy never share gradient ids
-  return `<svg class="plsvg" viewBox="90 60 390 260" aria-hidden="true"><defs>
-      <clipPath id="${u}c"><rect x="95" y="0" width="160" height="400"/></clipPath>
-      <linearGradient id="${u}s" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#9298a1" stop-opacity=".22"/><stop offset="34%" stop-color="#b3b7bd" stop-opacity=".17"/>
-        <stop offset="72%" stop-color="#d1d3d7" stop-opacity=".10"/><stop offset="100%" stop-color="#e6e7e9" stop-opacity=".025"/>
-      </linearGradient>
-      <linearGradient id="${u}i" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#f8f8f8"/><stop offset="38%" stop-color="#eeeeef"/>
-        <stop offset="76%" stop-color="#d9dbde"/><stop offset="100%" stop-color="#c5c8cd"/>
-      </linearGradient>
-      <filter id="${u}f" x="-25%" y="-35%" width="150%" height="170%"><feGaussianBlur stdDeviation="2.2"/></filter>
-    </defs>
-    <g data-p="trail" clip-path="url(#${u}c)" opacity="0" fill="none" stroke="#222" stroke-width="4" stroke-linecap="round">
-      <path data-p="up" stroke-dasharray="22 16 14 24 14 16"/><path data-p="low" stroke-dasharray="46 14 37 48 12 48"/>
-    </g>
-    <g transform="rotate(-18 280 180)">
-      <polygon data-p="flap" fill="#fff"/>
-      <polygon data-p="shadowSoft" fill="#818791" opacity=".12" filter="url(#${u}f)"/>
-      <polygon data-p="shade" fill="url(#${u}s)"/>
-      <polygon data-p="innerShadowSoft" fill="#8c929b" opacity=".15" filter="url(#${u}f)"/>
-      <polygon data-p="inner" fill="url(#${u}i)"/>
-      <polygon data-p="rear" fill="#ffb3ba"/>
-      <polygon data-p="main" fill="#ffb3ba"/>
-      <g fill="none" stroke="#222" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
-        <path data-p="outline"/><path data-p="crease"/><path data-p="innerEdge"/><path data-p="joinEdge"/><path data-p="flapEdge"/>
+function plSVG() {                                     // a fresh plane drawing (unique ids, so the resting and the flying copy never clash)
+  const id = 'pl' + (++plCount) + '-';
+  return { id, html:
+    `<svg class="pl-svg" viewBox="90 60 390 260" aria-hidden="true">
+      <defs>
+        <clipPath id="${id}clip"><rect x="95" y="0" width="160" height="400"/></clipPath>
+        <linearGradient id="${id}cs" data-k="cs" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#9298a1" stop-opacity=".22"/><stop offset="34%" stop-color="#b3b7bd" stop-opacity=".17"/>
+          <stop offset="72%" stop-color="#d1d3d7" stop-opacity=".10"/><stop offset="100%" stop-color="#e6e7e9" stop-opacity=".025"/>
+        </linearGradient>
+        <linearGradient id="${id}ig" data-k="ig" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#f8f8f8"/><stop offset="38%" stop-color="#eeeeef"/>
+          <stop offset="76%" stop-color="#d9dbde"/><stop offset="100%" stop-color="#c5c8cd"/>
+        </linearGradient>
+        <filter id="${id}fs" x="-25%" y="-35%" width="150%" height="170%"><feGaussianBlur stdDeviation="2.2"/></filter>
+      </defs>
+      <g class="pl-trail" data-k="trail" clip-path="url(#${id}clip)" opacity="0">
+        <path data-k="up"  stroke-dasharray="22 16 14 24 14 16"/>
+        <path data-k="low" stroke-dasharray="46 14 37 48 12 48"/>
       </g>
-    </g></svg>`;
+      <g transform="rotate(-18 280 180)">
+        <polygon data-k="flap" class="pl-white"/>
+        <polygon data-k="shadowSoft" fill="#818791" opacity=".12" filter="url(#${id}fs)"/>
+        <polygon data-k="shade" fill="url(#${id}cs)"/>
+        <polygon data-k="innerShadowSoft" fill="#8c929b" opacity=".15" filter="url(#${id}fs)"/>
+        <polygon data-k="inner" fill="url(#${id}ig)"/>
+        <polygon data-k="rear" class="pl-blue"/>
+        <polygon data-k="main" class="pl-blue"/>
+        <path data-k="outline" class="pl-ink"/>
+        <path data-k="crease" class="pl-ink"/>
+        <path data-k="innerEdge" class="pl-ink"/>
+        <path data-k="joinEdge" class="pl-ink"/>
+        <path data-k="flapEdge" class="pl-ink"/>
+      </g>
+    </svg>` };
 }
-function planeRig(svg, u) {                                                // finds the plane's parts once and returns a draw() that poses them
-  const q = k => svg.querySelector('[data-p="' + k + '"]');
-  const el = {}; ['flap', 'shade', 'shadowSoft', 'inner', 'innerShadowSoft', 'rear', 'main', 'outline', 'crease', 'innerEdge', 'joinEdge', 'flapEdge', 'up', 'low', 'trail'].forEach(k => el[k] = q(k));
-  const gs = svg.querySelector('#' + u + 's'), gi = svg.querySelector('#' + u + 'i');
-  function draw(v) {
-    const [Lx, Ly, Px, Py, R2x, R2y, R1x, R1y, Tx, Ty, Cx, Cy, fdx, fdy, uy, ly] = v;
-    const Wx = Lx + fdx, Wy = Ly + fdy, tx = Wx + 8, ty = Ly + (tx - Lx) * (Ty - Ly) / (Tx - Lx);
-    el.flap.setAttribute('points', plPts(tx, ty, Wx, Wy, Tx, Ty));
-    const shX = tx + (Wx - tx) * 0.82, shY = ty + (Wy - ty) * 0.82, sp = plPts(tx, ty, Tx, Ty, shX, shY);
-    el.shadowSoft.setAttribute('points', sp); el.shade.setAttribute('points', sp);
-    gs.setAttribute('x1', tx.toFixed(1)); gs.setAttribute('y1', ty.toFixed(1)); gs.setAttribute('x2', shX.toFixed(1)); gs.setAttribute('y2', shY.toFixed(1));
-    const ip = plPts(Px, Py, R2x, R2y, Cx, Cy);
-    el.innerShadowSoft.setAttribute('points', ip); el.inner.setAttribute('points', ip);
-    gi.setAttribute('x1', ((Px + R2x) / 2).toFixed(1)); gi.setAttribute('y1', ((Py + R2y) / 2).toFixed(1)); gi.setAttribute('x2', Cx.toFixed(1)); gi.setAttribute('y2', Cy.toFixed(1));
-    el.rear.setAttribute('points', plPts(R2x, R2y, R1x, R1y, Tx, Ty, Cx, Cy));
-    el.main.setAttribute('points', plPts(Lx, Ly, Px, Py, Cx, Cy, Tx, Ty));
-    el.outline.setAttribute('d', `M${plPts(Lx, Ly)}L${plPts(Px, Py)}L${plPts(R2x, R2y)}L${plPts(R1x, R1y)}L${plPts(Tx, Ty)}Z`);
-    el.crease.setAttribute('d', `M${plPts(Px, Py)}L${plPts(Cx, Cy)}`);
-    el.innerEdge.setAttribute('d', `M${plPts(R2x, R2y)}L${plPts(Cx, Cy)}`);
-    el.joinEdge.setAttribute('d', `M${plPts(Cx, Cy)}L${plPts(Tx, Ty)}`);
-    el.flapEdge.setAttribute('d', `M${plPts(tx, ty)}L${plPts(Wx, Wy)}L${plPts(Tx, Ty)}`);
-    el.up.setAttribute('d', `M60 ${uy.toFixed(1)}H270`); el.low.setAttribute('d', `M60 ${ly.toFixed(1)}H270`);
+function plRefs(root) {
+  const R = {}; root.querySelectorAll('[data-k]').forEach(n => R[n.dataset.k] = n); return R;
+}
+function plDraw(R, v) {                                // same drawing maths as the original paper-plane file
+  const [Lx,Ly,Px,Py,R2x,R2y,R1x,R1y,Tx,Ty,Cx,Cy,fdx,fdy,uy,ly] = v;
+  const Wx = Lx + fdx, Wy = Ly + fdy, tx = Wx + 8, ty = Ly + (tx - Lx) * (Ty - Ly) / (Tx - Lx);
+  R.flap.setAttribute('points', plPts(tx,ty, Wx,Wy, Tx,Ty));
+  const shadowX = tx + (Wx - tx) * 0.82, shadowY = ty + (Wy - ty) * 0.82, shadowPoints = plPts(tx,ty, Tx,Ty, shadowX,shadowY);
+  R.shadowSoft.setAttribute('points', shadowPoints); R.shade.setAttribute('points', shadowPoints);
+  R.cs.setAttribute('x1', tx.toFixed(1)); R.cs.setAttribute('y1', ty.toFixed(1)); R.cs.setAttribute('x2', shadowX.toFixed(1)); R.cs.setAttribute('y2', shadowY.toFixed(1));
+  const innerPoints = plPts(Px,Py, R2x,R2y, Cx,Cy);
+  R.innerShadowSoft.setAttribute('points', innerPoints); R.inner.setAttribute('points', innerPoints);
+  R.ig.setAttribute('x1', ((Px + R2x) / 2).toFixed(1)); R.ig.setAttribute('y1', ((Py + R2y) / 2).toFixed(1)); R.ig.setAttribute('x2', Cx.toFixed(1)); R.ig.setAttribute('y2', Cy.toFixed(1));
+  R.rear.setAttribute('points', plPts(R2x,R2y, R1x,R1y, Tx,Ty, Cx,Cy));
+  R.main.setAttribute('points', plPts(Lx,Ly, Px,Py, Cx,Cy, Tx,Ty));
+  R.outline.setAttribute('d', `M${plPts(Lx,Ly)}L${plPts(Px,Py)}L${plPts(R2x,R2y)}L${plPts(R1x,R1y)}L${plPts(Tx,Ty)}Z`);
+  R.crease.setAttribute('d', `M${plPts(Px,Py)}L${plPts(Cx,Cy)}`);
+  R.innerEdge.setAttribute('d', `M${plPts(R2x,R2y)}L${plPts(Cx,Cy)}`);
+  R.joinEdge.setAttribute('d', `M${plPts(Cx,Cy)}L${plPts(Tx,Ty)}`);
+  R.flapEdge.setAttribute('d', `M${plPts(tx,ty)}L${plPts(Wx,Wy)}L${plPts(Tx,Ty)}`);
+  R.up.setAttribute('d', `M60 ${uy.toFixed(1)}H270`); R.low.setAttribute('d', `M60 ${ly.toFixed(1)}H270`);
+}
+function planeMount() {
+  const card = $('#quotecard'); if (!card || $('#pplane')) return;
+  if (!plStyled) {
+    plStyled = true;
+    const st = document.createElement('style');
+    st.textContent =
+      '.pplane{position:absolute;right:12px;bottom:10px;width:92px;aspect-ratio:390/260;padding:0;border:0;background:none;cursor:pointer;z-index:2;-webkit-tap-highlight-color:transparent;transition:opacity .5s ease,scale .25s ease}'
+      + '.pplane:hover{scale:1.06}'
+      + '.pplane.away{opacity:0;pointer-events:none;transition:none}'
+      + '.pplane:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:10px}'
+      + '.pl-svg{display:block;width:100%;height:100%;overflow:visible}'
+      + '.pl-fly{position:fixed;z-index:55;pointer-events:none;will-change:transform}'
+      + '.pl-ink{stroke:#222;stroke-width:4;stroke-linejoin:round;stroke-linecap:round;fill:none}'
+      + '.pl-blue{fill:#ffb3ba}.pl-white{fill:#fff}'
+      + '.pl-trail path{fill:none;stroke:#222;stroke-width:4;stroke-linecap:round}'
+      + '@media(max-width:900px){.pplane{width:72px;right:8px;bottom:8px}}';
+    document.head.appendChild(st);
   }
-  return { draw, up: el.up, low: el.low, trail: el.trail };
+  const s = plSVG(), b = document.createElement('button');
+  b.type = 'button'; b.id = 'pplane'; b.className = 'pplane'; b.setAttribute('aria-label', 'Tap to launch the paper plane'); b.innerHTML = s.html;
+  card.appendChild(b);
+  plDraw(plRefs(b), plPose(0));                        // resting pose: the first keyframe, trail hidden
+  b.addEventListener('click', planeLaunch);
 }
-
-function planeFly(btn) {                                                   // tap: lift a copy off the card and fly it off the screen
-  if (planeBusy) return; planeBusy = true;
-  const r = btn.getBoundingClientRect(), u = 'pl' + (++planeSeq);
-  const el = document.createElement('div'); el.className = 'plfly';
-  Object.assign(el.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
-  el.innerHTML = planeMarkup(u); document.body.appendChild(el);
-  const rig = planeRig(el.firstElementChild, u); rig.draw(planePose(0));
-  btn.classList.add('gone');                                               // the card's plane leaves; the copy takes over from the exact same spot
-  const exitX = innerWidth - (r.left + r.width / 2) + r.width, exitY = innerHeight * 0.14, speed = reduce ? 6 : 1, start = performance.now();
-  const step = now => {
-    const t = ((now - start) / 1000) * speed;
-    rig.draw(planePose(t));
-    const flow = (t * PL_TRAIL).toFixed(1);
-    rig.up.style.strokeDashoffset = flow; rig.low.style.strokeDashoffset = flow;
-    rig.trail.setAttribute('opacity', Math.min(1, t / 0.15).toFixed(2));
-    if (t > PL_POSE) {
-      const p = Math.min((t - PL_POSE) / PL_EXIT, 1), e = Math.pow(p, 2.2);   // same ease-in exit: out to the right, a little up, turning and shrinking
-      el.style.transform = `translate(${e * exitX}px,${-e * exitY}px) rotate(${-10 * e}deg) scale(${1 - 0.5 * e})`;
-      if (p >= 1) {
-        el.remove();
-        setTimeout(() => {                                                 // a moment later the plane is back on the card, ready to be tapped again
-          btn.classList.remove('gone'); btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop');
-          setTimeout(() => btn.classList.remove('pop'), 500); planeBusy = false;
-        }, 1500);
-        return;
-      }
-    }
-    requestAnimationFrame(step);
+function planeLaunch() {
+  if (plBusy) return; plBusy = true;
+  const btn = $('#pplane'), r = btn.getBoundingClientRect();
+  const fly = document.createElement('div'); fly.className = 'pl-fly';
+  Object.assign(fly.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+  const s = plSVG(); fly.innerHTML = s.html; document.body.appendChild(fly);
+  const R = plRefs(fly), trail = R.trail;
+  plDraw(R, plPose(0)); btn.classList.add('away');                       // the resting plane leaves the card; the copy takes off from the same spot
+  const exitX = innerWidth - (r.left + r.width / 2) + r.width * 1.5, exitY = innerHeight * 0.14, easeIn = p => Math.pow(p, 2.2), start = performance.now();
+  const finish = () => {
+    fly.remove();
+    setTimeout(() => { btn.classList.remove('away'); plBusy = false; }, 900);   // fades back into the card, ready for the next tap
   };
-  requestAnimationFrame(step);
-}
-function initPlane() {
-  const b = $('#qplane'); if (!b) return;
-  const u = 'pl' + (++planeSeq);
-  b.innerHTML = planeMarkup(u); planeRig(b.firstElementChild, u).draw(planePose(0));   // resting pose = the first keyframe
-  b.addEventListener('click', () => planeFly(b));
+  const frame = now => {
+    const t = ((now - start) / 1000) * (reduce ? 6 : 1);
+    plDraw(R, plPose(t));
+    const flow = (t * PL_TRAIL).toFixed(1);
+    R.up.style.strokeDashoffset = flow; R.low.style.strokeDashoffset = flow;
+    trail.setAttribute('opacity', Math.min(1, t / 0.15).toFixed(2));
+    if (t > PL_POSE) {
+      const p = Math.min((t - PL_POSE) / PL_EXIT, 1), e = easeIn(p);
+      fly.style.transform = `translate(${(e * exitX).toFixed(1)}px,${(-e * exitY).toFixed(1)}px) rotate(${(-10 * e).toFixed(2)}deg) scale(${(1 - 0.5 * e).toFixed(3)})`;
+      if (p >= 1) { finish(); return; }
+    }
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
 }
 
 /* ---------------- start ---------------- */
-buildPoop(); buildQuote(); initPlane(); prender(); pdraw(true);
+buildPoop(); buildQuote(); prender(); pdraw(true);
 $('#pbox').addEventListener('change', e => { if (e.target.checked) poopTick(); else prender(); });
 $('#ptabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; ptab = b.dataset.t; $$('#ptabs button').forEach(x => x.classList.toggle('on', x === b)); pdraw(true); });
 $('#pplot').addEventListener('pointermove', e => {
