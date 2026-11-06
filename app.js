@@ -690,8 +690,28 @@ function buildPoop() {
   $('.chartcard').insertAdjacentHTML('afterend',
     `<div class="chartcard reveal" id="pchart" style="--dy:90px;--i:7">
        <div class="chead">
-         <div class="csum"><div class="cs-l"><b>POOP</b><small>Days Pooped</small></div>
+                  <div class="csum"><div class="cs-l"><b>POOP</b><small>Days Pooped</small></div>
            <div class="cs-r"><strong id="ps-val"></strong><em id="ps-delta"></em></div></div>
+         <div class="pbird" id="pbird">
+           <div class="pb-scale">
+             <div class="pb-bird" id="pbirdBtn" role="button" tabindex="0" aria-label="Show or hide Yubird's message" aria-expanded="false">
+               <div class="yubird">
+                 <div class="left-wing"></div>
+                 <div class="right-wing"></div>
+                 <div class="left-leg"></div>
+                 <div class="right-leg"></div>
+                 <div class="hair">
+                   <div class="hair-1"></div>
+                   <div class="hair-2"></div>
+                 </div>
+                 <div class="body"></div>
+                 <div class="beak"></div>
+                 <div class="yu-eyes"></div>
+               </div>
+             </div>
+           </div>
+           <div class="pb-dialogue" id="pbDialogue" aria-hidden="true">Bestie still didn't come, relax!</div>
+         </div>
          <div class="tabs" id="ptabs" role="tablist"></div>
        </div>
        <div class="plot" id="pplot"><svg id="psvg" role="img" aria-label="Poop trend chart"></svg><div class="tip" id="ptip" hidden></div></div>
@@ -1048,6 +1068,15 @@ function planeLaunch() {                               // called only by the ann
 
 /* ---------------- start ---------------- */
 buildPoop(); buildQuote(); prender(); pdraw(true);
+/* Yubird: tap (or Enter / Space) to open or close its message */
+const pbBird = $('#pbirdBtn'), pbDlg = $('#pbDialogue');
+function pbToggle() {
+  const o = pbDlg.classList.toggle('open');
+  pbBird.setAttribute('aria-expanded', String(o));
+  pbDlg.setAttribute('aria-hidden', String(!o));
+}
+pbBird.addEventListener('click', pbToggle);
+pbBird.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pbToggle(); } });
 $('#pbox').addEventListener('change', e => { if (e.target.checked) poopTick(); else prender(); });
 $('#ptabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; ptab = b.dataset.t; $$('#ptabs button').forEach(x => x.classList.toggle('on', x === b)); pdraw(true); });
 $('#pplot').addEventListener('pointermove', e => {
