@@ -710,7 +710,7 @@ function buildPoop() {
                </div>
              </div>
            </div>
-           <div class="pb-dialogue" id="pbDialogue" aria-hidden="true">Bestie still didn't come, relax!</div>
+           <div class="pb-dialogue" id="pbDialogue" aria-hidden="true">What is warmer than Venuk but has no weight?</div>
          </div>
          <div class="tabs" id="ptabs" role="tablist"></div>
        </div>
