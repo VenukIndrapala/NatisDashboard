@@ -1252,3 +1252,68 @@ addEventListener('resize', () => { if (fstate === 'rest') { fC = []; queueFish()
   addEventListener('load', () => { if (fstate === 'rest') { fC = []; queueFish(); } });
   if (window.ResizeObserver) new ResizeObserver(() => { if (fstate === 'rest') { fC = []; queueFish(); } }).observe($('.dash'));
 })();
+/* =====================================================================
+   SCROLL LETTER  (rests to the left of the koi fish; tap it and it glides to the middle of the screen, then the letter opens)
+   ---------------------------------------------------------------------
+   - the resting scroll is part of the PAGE (page coordinates, like the fish), so it scrolls with the dashboard
+   - on tap, a full-screen layer opens the same way the Daily Puzzle does; the scroll flies from its resting spot to the centre,
+     then the original scroll animation runs: the paper grows open while the scroll drops along its bottom edge
+   - tap the scroll again to roll the letter up / open it; the X (or Esc) closes the layer
+   ===================================================================== */
+const LT_GAP = 250;                                   // distance from the cow's left edge to the scroll's centre (raise it to move the scroll further left)
+let ltBusy = false;
+const scrollSpot = document.createElement('button');
+scrollSpot.type = 'button'; scrollSpot.id = 'scrollSpot'; scrollSpot.className = 'scrollspot'; scrollSpot.setAttribute('aria-label', 'Open the letter');
+scrollSpot.innerHTML = '<img src="scroll.png" alt="" draggable="false">';
+document.body.appendChild(scrollSpot);
+
+const lt = document.createElement('div');
+lt.id = 'lt'; lt.className = 'lt'; lt.hidden = true; lt.setAttribute('role', 'dialog'); lt.setAttribute('aria-modal', 'true'); lt.setAttribute('aria-label', 'A letter for Nati');
+lt.innerHTML = `<button type="button" class="lt-x" id="ltClose" aria-label="Close letter">&times;</button>
+  <div class="lt-stage">
+    <div class="lt-heart" id="ltHeart" role="button" tabindex="0" aria-label="Open or close the letter"><img src="scroll.png" alt="A parchment scroll" draggable="false"></div>
+    <article class="lt-message">
+      <h1>Dear Nati,</h1>
+      <p class="aside-note">(There's some cute parts, I wrote this last Wednesday so skip over those)</p>
+      <p>Guys I'm not sure where I'll be when sending this because I could have landed safely but data could've cooked me or might not have landed safely and she would've got a video note from me and her rating for the day would've sky rocketed to like 7 or 8 out of 10...sigh, But regardless we are here to cheer her up while she's fighting for her life with bestie.(I'll be sending this email before I leave because I don't want her to be empty handed when bestie comes and we are cooked because of data) and wait let me hit a sniff... *sniff* *sniff* yup I don't smell bestie even coming close to clocking her guys, she's absolutely wiping bestie off the floor EYA GONE, FINISHED, K.O.&amp; IWARAI. But guys I don't wanna miss her clocking bestie :( I get so happy to see our princess absolutely pushing through with everything she has being a diva, you should research on "missing you" in Chinese you'll learn what I'll be going through the whole of next week. So hang in there ma'am, no one's got this better than you and we are always proud of how strong you are through all of it. and finally GET WELL SOOOOOON OKAY! BIG HUG (that's getting the side eye).</p>
+      <p class="game-link">Play this before the actual game:<br><a href="https://venukindrapala.github.io/PuzzleSearch/" target="_blank" rel="noopener noreferrer">https://venukindrapala.github.io/PuzzleSearch/</a></p>
+      <p class="game-link">The actual game:<br><a href="https://venukindrapala.github.io/OverseasBestieClocker/" target="_blank" rel="noopener noreferrer">https://venukindrapala.github.io/OverseasBestieClocker/</a></p>
+    </article>
+  </div>`;
+document.body.appendChild(lt);
+const ltHeart = $('#ltHeart');
+
+function layoutScroll() {                             // rest spot: level with the middle of the cow, to the left of the fish
+  const c = $('.cow'); if (!c) return; const r = c.getBoundingClientRect(); if (!r.width) return;
+  scrollSpot.style.left = Math.max(60, r.left + scrollX - LT_GAP) + 'px';
+  scrollSpot.style.top = (r.top + scrollY + r.height * .5) + 'px';
+  scrollSpot.classList.add('ready');
+}
+layoutScroll();
+[300, 900, 1600, 2600].forEach(t => setTimeout(layoutScroll, t));
+addEventListener('load', layoutScroll); addEventListener('resize', layoutScroll);
+if (window.ResizeObserver) new ResizeObserver(layoutScroll).observe($('.dash'));
+
+function ltShow() {
+  if (ltBusy || !lt.hidden) return; ltBusy = true;
+  const from = scrollSpot.getBoundingClientRect();
+  lt.classList.remove('is-open'); lt.hidden = false; document.body.classList.add('puzopen');
+  scrollSpot.style.visibility = 'hidden';
+  const to = ltHeart.getBoundingClientRect();         // the scroll's centred position inside the layer
+  const dx = (from.left + from.width / 2) - (to.left + to.width / 2), dy = (from.top + from.height / 2) - (to.top + to.height / 2), s = from.width / to.width;
+  if (reduce) { ltBusy = false; lt.classList.add('is-open'); return; }
+  ltHeart.animate(
+    [{ transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(${s})` }, { transform: 'translate(-50%,-50%) scale(1)' }],
+    { duration: 900, easing: 'cubic-bezier(.22,1,.36,1)' }
+  ).onfinish = () => { ltBusy = false; lt.classList.add('is-open'); };   // the scroll is in the middle: now it opens
+}
+function ltHide() {
+  if (lt.hidden || ltBusy) return; ltBusy = true;
+  const wasOpen = lt.classList.contains('is-open'); lt.classList.remove('is-open');
+  setTimeout(() => { lt.hidden = true; ltBusy = false; scrollSpot.style.visibility = ''; document.body.classList.remove('puzopen'); layoutScroll(); }, wasOpen && !reduce ? 2000 : 0);
+}
+scrollSpot.addEventListener('click', ltShow);
+ltHeart.addEventListener('click', () => { if (!ltBusy) lt.classList.toggle('is-open'); });
+ltHeart.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && !ltBusy) { e.preventDefault(); lt.classList.toggle('is-open'); } });
+$('#ltClose').addEventListener('click', ltHide);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !lt.hidden) ltHide(); });
